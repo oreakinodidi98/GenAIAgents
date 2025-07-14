@@ -61,6 +61,7 @@ def summarize_node(state: State):
 
 workflow = StateGraph(State)
 
+# add nodes to the workflow
 workflow.add_node("classify", classify_node)
 workflow.add_node("extract_entities", extract_entities_node)
 workflow.add_node("summarize", summarize_node)

@@ -73,23 +73,7 @@ def summarize_node(state: State):
 
 workflow = StateGraph(State)
 
-# add nodes to the graph
-# workflow.add_node(
-#     classify_node,
-#     name="classify",
-#     description="Classify the type of text into News, Blog, Research, or Other"
-# )
-# workflow.add_node(
-#     extract_entities_node,
-#     name="extract_entities",
-#     description="Extract important people, places, and things from the text"
-# )
-# workflow.add_node(
-#     summarize_node,
-#     name="summarize",
-#     description="Generate a concise summary of the text"
-# )
-
+# Add nodes to the workflow for each capability
 workflow.add_node("classify", classify_node)
 workflow.add_node("extract_entities", extract_entities_node)
 workflow.add_node("summarize", summarize_node)
