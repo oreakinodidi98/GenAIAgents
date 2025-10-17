@@ -17,3 +17,7 @@
    2. Verify azd is installed ```azd version```
    3. Login to Azure (this will open browser for authentication ```azd login```
    4. Verify login status ```azd auth login-status```
+6. Run with uvicorn for development ```uvicorn api.main:create_app --factory --host 0.0.0.0 --port 8000 --reload```
+7. need to give mysef role of ```Search Index Data Reader``` in azure for search
+8. Build dockerfile using ```docker build -t <name:latest> .```
+9. 
