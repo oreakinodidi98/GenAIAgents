@@ -37,3 +37,9 @@
 ![MCP Architecture](image.png)
 
 - Communication within MCP uses JSON-RPC 2.0 over WebSocket connections, ensuring real-time, bidirectional communication between components.
+
+## Set up enviroment
+
+1. Install uv Package Manager ```curl -LsSf https://astral.sh/uv/install.sh | sh``` use in basc cli
+2. Set up Virtual enviroment ```uv init``` then ```uv venv``` with ```source .venv/Scripts/activate```
+3. Install dependencies ```uv add "mcp[cli]" httpx```
