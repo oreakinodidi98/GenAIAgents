@@ -316,3 +316,4 @@ src/api/static/react/
 .vscode/launch.json
 .env.sample
 .env
+*.env.sample
