@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-chatbot-demo
+    image: ai-chat-demo:latest
+    ports:
+      - "8000:50505"  # Map host port 8000 to container port 50505
+    # Use  existing .env file
+    env_file:
+      - .env
+    # Restart policy
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1 # Ensures real-time logging
+    volumes:
+      - .:/code # optional: mount current directory to /code in container
+    depends_on: []
