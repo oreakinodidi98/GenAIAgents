@@ -37,3 +37,16 @@
     3. need an embedding model in order to convert our documents into vectors that will be stored in Azure AI Search
     4.  vectorize our documents
     5.  Connect on AI foundry
+
+## Auto multi agent
+
+1. This section demonstrates how to use an AgentTeam to execute a multi-step, user request with automatic function calling and trace collection.
+2. The team consists of
+   1. One leader agent - created automatically from the configuration in `utils/agent_team_config.yaml`
+   2. three worker agents - `TimeWeatherAgent`, `SendEmailAgent`, and `TemperatureAgent`, each defined in the code below with its own tools
+3. Create `utils/agent_team_config.yaml` folder
+4. `utils/agent_team_config.yaml` contains the key ```TEAM_LEADER_MODEL```. Its value must be the name of a **deployed** model in your Azure AI project (e.g. "gpt-4o-mini")
+5. pip install azure-ai-projects azure-ai-agents azure-identity
+6. Set these environment variables with values:
+7. PROJECT_ENDPOINT - The Azure AI Project endpoint, as found in the Overview page of your Azure AI Foundry portal.
+8. MODEL_DEPLOYMENT_NAME - The model deployment name used for the worker agents.
