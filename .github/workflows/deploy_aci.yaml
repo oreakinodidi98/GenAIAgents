@@ -1,0 +1,180 @@
+name: Deploy to Azure Container Instances
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image to ACR"]
+    types:
+      - completed
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if build workflow failed'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  RESOURCE_GROUP: AI_Demo
+  ACR_NAME: oaaidemo
+  ACI_NAME: ai-chatbot-aci
+  AKV_NAME: oaaidemoazurecr-kv
+  WORKSPACE_NAME: aicontainerdemo
+
+jobs:
+  deploy-to-aci:
+    runs-on: ubuntu-latest
+    # Only run if the build workflow succeeded, or if manually triggered with force_deploy
+    if: ${{ github.event.workflow_run.conclusion == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_deploy == 'true') }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Get Log Analytics Workspace Details
+      id: workspace
+      run: |
+        WORKSPACE_ID=$(az monitor log-analytics workspace show \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --workspace-name ${{ env.WORKSPACE_NAME }} \
+          --query customerId -o tsv)
+        
+        WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --workspace-name ${{ env.WORKSPACE_NAME }} \
+          --query primarySharedKey -o tsv)
+        
+        echo "workspace-id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
+        echo "::add-mask::$WORKSPACE_KEY"
+        echo "workspace-key=$WORKSPACE_KEY" >> $GITHUB_OUTPUT
+
+    - name: Get User Managed Identity ID
+      id: identity
+      run: |
+        USER_IDENTITY_ID=$(az identity list \
+          --query "[?clientId=='$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name azure-client-id --query value -o tsv)'].id | [0]" \
+          -o tsv)
+        echo "user-identity-id=$USER_IDENTITY_ID" >> $GITHUB_OUTPUT
+
+    - name: Delete existing container (if exists)
+      run: |
+        # Check if container exists before trying to delete
+        if az container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.ACI_NAME }} >/dev/null 2>&1; then
+          echo "Deleting existing container: ${{ env.ACI_NAME }}"
+          az container delete \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.ACI_NAME }} -y
+        else
+          echo "No existing container found"
+        fi
+
+    - name: Deploy to Azure Container Instances
+      run: |
+        # Use the latest image tag from the successful build
+        IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+        
+        az container create \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.ACR_NAME }}:$IMAGE_TAG \
+          --log-analytics-workspace ${{ steps.workspace.outputs.workspace-id }} \
+          --log-analytics-workspace-key ${{ steps.workspace.outputs.workspace-key }} \
+          --registry-login-server ${{ env.ACR_NAME }}.azurecr.io \
+          --registry-username $(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name ${{ env.ACR_NAME }}-pull-usr --query value -o tsv) \
+          --registry-password $(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name ${{ env.ACR_NAME }}-pull-pwd --query value -o tsv) \
+          --secure-environment-variables \
+            PORT=80 \
+            RUNNING_IN_PRODUCTION=false \
+            AZURE_CLIENT_ID=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-CLIENT-ID --query value -o tsv) \
+            AZURE_AI_CHAT_DEPLOYMENT_NAME=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-CHAT-DEPLOYMENT-NAME --query value -o tsv) \
+            AZURE_AI_EMBED_DEPLOYMENT_NAME=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-EMBED-DEPLOYMENT-NAME --query value -o tsv) \
+            AZURE_AI_EMBED_DIMENSIONS=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-EMBED-DIMENSIONS --query value -o tsv) \
+            AZURE_AI_SEARCH_ENDPOINT=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-SEARCH-ENDPOINT --query value -o tsv) \
+            AZURE_AI_SEARCH_INDEX_NAME=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-SEARCH-INDEX-NAME --query value -o tsv) \
+            AZURE_SEARCH_API_KEY=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-AI-SEARCH-API-KEY --query value -o tsv) \
+            AZURE_EXISTING_AIPROJECT_ENDPOINT=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-EXISTING-AIPROJECT-ENDPOINT --query value -o tsv) \
+            AZURE_EXISTING_AIPROJECT_ENDPOINT_API_KEY=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-EXISTING-AIPROJECT-API-KEY --query value -o tsv) \
+            AZURE_OPENAI_ENDPOINT=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-OPENAI-ENDPOINT --query value -o tsv) \
+            AZURE_OPENAI_API_KEY=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-OPENAI-API-KEY --query value -o tsv) \
+            ENABLE_AZURE_MONITOR_TRACING=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name ENABLE-AZURE-MONITOR-TRACING --query value -o tsv) \
+            AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-TRACING-GEN-AI-CONTENT-RECORDING-ENABLED --query value -o tsv) \
+            AZURE_TENANT_ID=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name AZURE-TENANT-ID --query value -o tsv) \
+            APPINSIGHTS_CONNECTION_STRING=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name APPINSIGHTS-CONNECTION-STRING --query value -o tsv) \
+            OTEL_TRACES_SAMPLER=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name OTEL-TRACES-SAMPLER --query value -o tsv) \
+            OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=$(az keyvault secret show --vault-name ${{ env.AKV_NAME }} --name OTEL-INSTRUMENTATION-GENAI-CAPTURE-MESSAGE-CONTENT --query value -o tsv) \
+          --assign-identity ${{ steps.identity.outputs.user-identity-id }} \
+          --dns-name-label ai-chat-${{ env.ACR_NAME }}-${{ github.run_number }} \
+          --os-type Linux \
+          --cpu 1 \
+          --memory 1.5 \
+          --ports 80 \
+          --query "{FQDN:ipAddress.fqdn}" \
+          --output table
+
+    - name: Wait for container to be ready
+      run: |
+        echo "Waiting for container to start..."
+        sleep 30
+        
+        # Check container status
+        CONTAINER_STATE=$(az container show \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --query "containers[0].instanceView.currentState.state" \
+          --output tsv)
+        
+        echo "Container state: $CONTAINER_STATE"
+        
+        # Get FQDN
+        FQDN=$(az container show \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --query "ipAddress.fqdn" \
+          --output tsv)
+        
+        echo "Container deployed successfully!"
+        echo "Access your chatbot at: https://$FQDN"
+
+    - name: Get deployment logs
+      if: always()
+      run: |
+        echo "=== Container Logs ==="
+        az container logs \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --tail 50 || echo "Could not retrieve logs"
+
+    - name: Create deployment summary
+      if: always()
+      run: |
+        FQDN=$(az container show \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --query "ipAddress.fqdn" \
+          --output tsv 2>/dev/null || echo "N/A")
+        
+        CONTAINER_STATE=$(az container show \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.ACI_NAME }} \
+          --query "containers[0].instanceView.currentState.state" \
+          --output tsv 2>/dev/null || echo "Unknown")
+        
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Container Name** | ${{ env.ACI_NAME }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Resource Group** | ${{ env.RESOURCE_GROUP }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Status** | $CONTAINER_STATE |" >> $GITHUB_STEP_SUMMARY
+        echo "| **FQDN** | $FQDN |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Chatbot URL** | [https://$FQDN](https://$FQDN) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Image Tag** | ${{ github.event.workflow_run.head_sha || github.sha }} |" >> $GITHUB_STEP_SUMMARY

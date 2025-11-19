@@ -1,0 +1,64 @@
+name: Build and Push Docker Image to ACR
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'Chatbot/SRC/**'
+      - 'Chatbot/scripts/**'
+  pull_request:
+    branches: [ main ]
+    paths: 
+      - 'Chatbot/SRC/**'
+      - 'Chatbot/scripts/**'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  RESOURCE_GROUP: AI_Demo
+  ACR_NAME: oaaidemo
+  IMAGE_NAME: oaaidemo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        platforms: linux/amd64
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ env.ACR_NAME }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./Chatbot/SRC
+        file: ./Chatbot/SRC/Dockerfile
+        platforms: linux/amd64
+        push: true
+        tags: |
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Output image details
+      run: |
+        echo "Image pushed to: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest"
+        echo "Image tag: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
