@@ -1,0 +1,21 @@
+Deployment Information
+======================
+Resource Group: demo-rg-agents-2086147168
+Container App: aca-agent-framework
+App URL: https://aca-agent-framework.politecoast-43435a76.uksouth.azurecontainerapps.io
+Container Registry: acragentframework2086147168.azurecr.io
+Managed Identity: mi-agent-framework-2086147168
+  Client ID: a39142d4-f99b-420a-b0c8-51bb8b85a596
+  Principal ID: c72cbef1-074c-4d85-be86-4111ba1ca38d
+Azure AI Account: aia-agent-framework-2086147168
+Azure AI Endpoint: 
+App Insights: ai-agent-framework-2086147168
+Connection String: InstrumentationKey=d6279654-0e51-4272-aa97-8565436ec8d9;IngestionEndpoint=https://uksouth-1.in.applicationinsights.azure.com/;LiveEndpoint=https://uksouth.livediagnostics.monitor.azure.com/;ApplicationId=50548d72-2c5d-4789-96aa-384ba2515ba2
+
+Build Command:
+az acr build --registry acragentframework2086147168 --image agentapp:latest .
+
+Update Command:
+az containerapp update --name aca-agent-framework --resource-group demo-rg-agents-2086147168 --image acragentframework2086147168.azurecr.io/agentapp:latest
+
+Generated on: 2025-12-23 21:20:05
