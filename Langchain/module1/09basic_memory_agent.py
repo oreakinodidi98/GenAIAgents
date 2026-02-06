@@ -43,7 +43,9 @@ If the user asks for information, use the web search tool to find the answer.
 """
 
 # initialise an agent with system prompt and tool
-# using checkpointer to save the agent's memory in the InMemorySaver which is a simple in-memory storage for checkpoints. This allows the agent to retain information across interactions, enabling it to have a memory of past conversations and actions.
+# using checkpointer to save the agent's memory in the InMemorySaver which is a simple in-memory storage for checkpoints. 
+# #This allows the agent to retain information across interactions, enabling it to have a memory of past conversations and actions. 
+# saving a snapshot of the stat at the end of each run and grouping it with the tread id
 agent = create_agent(model = model,
                      system_prompt=system_prompt,
                      tools=[tool1, web_search],
@@ -52,13 +54,20 @@ agent = create_agent(model = model,
 
 # invoke the agent with a prompt and get response 
 question = HumanMessage(content="Who is the current mayor of San Francisco?")
+# Config for thread id
+config = {"configurable": {"thread_id": "1"}}
 
 response = agent.invoke(
-    {"messages": [question]}
+    {"messages": [question]},
+    config=config
 )
 
-
-print(response['messages'][-1].content)
-
 pprint(response['messages'])
+question = HumanMessage(content="What's my favourite colour?")
 
+response = agent.invoke(
+    {"messages": [question]},
+    config,  
+)
+
+pprint(response)
