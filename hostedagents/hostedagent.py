@@ -1,21 +1,74 @@
+from dotenv import load_dotenv
 import os
+import asyncio
+
+# --- OpenTelemetry (OPTIONAL — remove if you don't need tracing) ---
+# Instruments Azure SDK calls and exports traces to Azure Monitor / Application Insights.
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from azure.identity.aio import DefaultAzureCredential
 from agent_framework import ChatAgent
-from agent_framework.openai import OpenAIChatClient
+from agent_framework.azure import AzureAIAgentClient, AzureAISearchContextProvider
 from azure.ai.agentserver.agentframework import from_agent_framework
 
+#APPLICATIONINSIGHTS_CONNECTION_STRING = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+# if APPLICATIONINSIGHTS_CONNECTION_STRING:
+#     from azure.monitor.opentelemetry.exporter import AzureMonitorTraceExporter
+
+#     provider = TracerProvider()
+#     provider.add_span_processor(
+#         SimpleSpanProcessor(
+#             AzureMonitorTraceExporter(connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING)
+#         )
+#     )
+#     trace.set_tracer_provider(provider)
+
+#from agent_framework.openai import OpenAIChatClient
+load_dotenv() # Load environment variables from .env file
+
+AZURE_AI_PROJECT_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_AI_CHAT_DEPLOYMENT_NAME")
+AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
+credential = DefaultAzureCredential()
+
+# agent instructions
+AGENT_INSTRUCTIONS = """You are an UWL Specialist Agent for The University of West London.
+Answer questions about the University, HR policies, PTO, benefits, and employee handbook using the knowledge base.
+Be specific and cite sources when possible."""
+
 def main() -> None:
-    chat_client = OpenAIChatClient(
-        model_id="llama3.2:3b",
-        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1/"),
-        api_key=os.getenv("OLLAMA_API_KEY", "ollama"),
+    # Step 1: Create the AI client (connects to Foundry project + model)
+    client = AzureAIAgentClient(
+        project_endpoint=AZURE_AI_PROJECT_ENDPOINT,
+        model_deployment_name=AZURE_OPENAI_DEPLOYMENT,
+        credential=credential,
     )
-    agent = ChatAgent(chat_client,
-                      name = "myagent",
-                      id = "myagent",
-                      instructions="You are sarcastic and reluctant to help, but eventually you will provide the answer.")
+    # Step 2: Create context providers (can remove if your agent doesn't need them)
+    # This  uses Azure AI Search to ground the agent with a knowledge base.
+    agent_context = AzureAISearchContextProvider(
+        endpoint=AZURE_AI_SEARCH_ENDPOINT,
+        knowledge_base_name="ai-search-uwl",
+        credential=credential,
+        mode="agentic",
+        knowledge_base_output_mode="answer_synthesis",
+    )
+    # Step 3: Build the ChatAgent
+    # - name/id: identifier for this agent
+    # - instructions: your agent's system prompt
+    # - context_providers: list of knowledge sources (can be empty [])
+    agent = ChatAgent(
+        client,
+        name="UWL-agent",
+        id="uwl-agent",
+        instructions=AGENT_INSTRUCTIONS,
+        context_providers=[agent_context],
+    )
 
     # Use the agent server adapter to host the agent
     # This automatically creates a REST API on port 8088 with /responses endpoint
+    # POST /responses  — receives user messages, returns agent responses
+    # GET  /readiness  — health check for Foundry
     from_agent_framework(agent).run()
 
 if __name__ == "__main__":

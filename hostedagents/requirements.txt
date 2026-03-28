@@ -1,0 +1,6 @@
+agent-framework
+agent-framework-azure-ai
+azure-identity
+python-dotenv
+opentelemetry-sdk
+opentelemetry-api

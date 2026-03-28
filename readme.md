@@ -67,3 +67,10 @@ The structure we've created tells our agent to:
 - **Context**: Agent can process text effectively, it operates purely within the scope of the text provided. It can't draw on broader knowledge or understand subtle nuances like cultural references or implied meaning that might be crucial for accurate analysis. (This can be overcome  with an internet search component if the information can be found on the internet).
 - Black box problem : We can observe the final outputs from each node, but we don't have full visibility into how the agent reaches its conclusions. This makes it harder to debug issues or understand why the agent might occasionally produce unexpected results. (exception here is using reasoning models like GPT-o1 or DeepSeek R1 that show you the way it thinks)
 - **Autonomy**: Our agent requires careful human oversight, particularly for validating its outputs and ensuring accuracy. Like many AI systems, it's designed to augment human capabilities rather than replace them entirely.
+
+## Trouble shooting
+
+to allow foundry use bellow 
+```az
+Get-AzCognitiveServicesAccount | Where-Object { $_.DisableLocalAuth -eq $true -and $_.AccountName -and $_.ResourceGroupName -and $_.Id } | ForEach-Object { Update-AzTag -ResourceId $_.Id -Tag @{SecurityControl='Ignore'} -Operation Merge | Out-Null; Set-AzCognitiveServicesAccount -ResourceGroupName $_.ResourceGroupName -Name $_.AccountName -DisableLocalAuth $false | Out-Null }
+```
