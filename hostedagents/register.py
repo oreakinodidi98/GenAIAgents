@@ -3,14 +3,24 @@
 Deploy a Hosted Agent to Microsoft Foundry
 """
 import os
+from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import ImageBasedHostedAgentDefinition, ProtocolVersionRecord, AgentProtocol
+from azure.ai.projects.models import HostedAgentDefinition, ProtocolVersionRecord, AgentProtocol
 from azure.identity import DefaultAzureCredential
 
+load_dotenv() # Load environment variables from .env file
+
 # Configuration - can be overridden by environment variables
-PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT", "")
-AGENT_NAME = os.getenv("AGENT_NAME", "MyAgent")
+PROJECT_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT", "")
+AGENT_NAME = os.getenv("AGENT_NAME", "uwl-Agent")
 CONTAINER_IMAGE = os.getenv("CONTAINER_IMAGE", "")
+SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT", "")
+MODEL_DEPLOYMENT_NAME = os.getenv("AZURE_AI_CHAT_DEPLOYMENT_NAME", "")
+
+# agent instructions
+AGENT_INSTRUCTIONS = """You are an UWL Specialist Agent for The University of West London.
+Answer questions about the University, HR policies, PTO, benefits, and employee handbook using the knowledge base.
+Be specific and cite sources when possible."""
 
 def main():
     print("🚀 Deploying AI Agent to Azure Foundry...")
@@ -23,14 +33,16 @@ def main():
     print("🔐 Authenticating with Azure...")
     client = AIProjectClient(
         endpoint=PROJECT_ENDPOINT,
-        credential=DefaultAzureCredential()
+        credential=DefaultAzureCredential(),
+        allow_preview=True,
     )
 
     # Create the agent from container image
     print("📦 Creating hosted agent version...")
     agent = client.agents.create_version(
         agent_name=AGENT_NAME,
-        definition=ImageBasedHostedAgentDefinition(
+        description=AGENT_INSTRUCTIONS,
+        definition=HostedAgentDefinition(
             container_protocol_versions=[
                 ProtocolVersionRecord(protocol=AgentProtocol.RESPONSES, version="v1")
             ],
@@ -38,8 +50,10 @@ def main():
             memory="7Gi",
             image=CONTAINER_IMAGE,
             environment_variables={
-                "OLLAMA_BASE_URL": "http://localhost:11434/v1/",
-                # Optionally add APP Insights to get logs from the Agent
+                "AZURE_AI_SEARCH_ENDPOINT": SEARCH_ENDPOINT,
+                "AZURE_OPENAI_DEPLOYMENT": MODEL_DEPLOYMENT_NAME,
+                "AZURE_AI_PROJECT_ENDPOINT": PROJECT_ENDPOINT,
+                # Optionally add other environment variables your agent needs, e.g. for Application Insights to get logs from the Agent
                 # "APPLICATIONINSIGHTS_CONNECTION_STRING": APPINSIGHTS_CONNECTION_STRING,
             }
         )

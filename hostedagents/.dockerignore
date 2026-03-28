@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+agent_env/
+original/
+*.md
+.git/
+.gitignore
+setup.ps1
+register.py
