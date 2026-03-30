@@ -277,3 +277,36 @@ The agent:
 ## Further Reading
 
 <!-- TODO: Add links to related resources, tutorials, or next steps -->
+
+## Setup
+
+### 1. Create and activate the virtual environment
+
+```powershell
+python -m venv agent_venv
+& .\agent_venv\Scripts\Activate.ps1
+```
+
+### 2. Install dependencies
+
+```powershell
+pip install agent-framework agent-framework-azure-ai azure-identity python-dotenv opentelemetry-sdk opentelemetry-api
+```
+
+Or from the requirements file:
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 3. Configure environment variables
+
+Create a `.env` file in this directory:
+
+```env
+AZURE_AI_PROJECT_ENDPOINT=https://<your-foundry-account>.services.ai.azure.com/api/projects/<your-project>
+AZURE_AI_CHAT_DEPLOYMENT_NAME=<your-model-deployment>
+AZURE_AI_SEARCH_ENDPOINT=https://<your-search-service>.search.windows.net
+AGENT_NAME=<your-agent-name>
+CONTAINER_IMAGE=<your-acr>.azurecr.io/<image-name>:<tag>
+```
