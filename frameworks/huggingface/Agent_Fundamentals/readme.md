@@ -280,6 +280,12 @@ The agent:
 
 ## Setup
 
+### Prerequisites
+
+- Python 3.10 or later
+- A Hugging Face account
+- A Hugging Face access token stored as `HF_TOKEN`
+
 ### 1. Create and activate the virtual environment
 
 ```powershell
@@ -290,13 +296,14 @@ python -m venv agent_venv
 ### 2. Install dependencies
 
 ```powershell
-pip install agent-framework agent-framework-azure-ai azure-identity python-dotenv opentelemetry-sdk opentelemetry-api
+python -m pip install --upgrade pip
+pip install python-dotenv huggingface_hub smolagents pytz
 ```
 
-Or from the requirements file:
+Optional extras:
 
 ```powershell
-pip install -r requirements.txt
+pip install "smolagents[littellm]"
 ```
 
 ### 3. Configure environment variables
@@ -304,9 +311,26 @@ pip install -r requirements.txt
 Create a `.env` file in this directory:
 
 ```env
-AZURE_AI_PROJECT_ENDPOINT=https://<your-foundry-account>.services.ai.azure.com/api/projects/<your-project>
-AZURE_AI_CHAT_DEPLOYMENT_NAME=<your-model-deployment>
-AZURE_AI_SEARCH_ENDPOINT=https://<your-search-service>.search.windows.net
-AGENT_NAME=<your-agent-name>
-CONTAINER_IMAGE=<your-acr>.azurecr.io/<image-name>:<tag>
+HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+HF_MODEL_ID=Qwen/Qwen2.5-Coder-32B-Instruct
 ```
+
+### 4. Run the example scripts
+
+```powershell
+python example.py
+python smolagents_demo.py
+```
+
+`example.py` demonstrates manual tool orchestration with `InferenceClient`.
+
+`smolagents_demo.py` demonstrates a `CodeAgent` with two local tools:
+
+- `get_current_time_in_timezone`
+- `my_custom_tool`
+
+## smolagents
+
+- `smolagents` is a lightweight library for building AI agents with minimal boilerplate.
+- It abstracts the agent loop so you can focus on tool design and task flow.
+- In this folder, use `smolagents_demo.py` rather than the old `smolagents.py` filename to avoid shadowing the installed `smolagents` package.
