@@ -1,11 +1,14 @@
 import os
+from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
+
+load_dotenv()
 
 ## need a token from https://hf.co/settings/tokens, select 'read' as the token type. 
 # If you run this on Google Colab, you can set it up in the "settings" tab under "secrets". 
 # Make sure to call it "HF_TOKEN"
 
-HF_TOKEN = os.environ.get("HF_TOKEN")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 client = InferenceClient(model="moonshotai/Kimi-K2.5")
 
@@ -40,14 +43,35 @@ Final Answer: the final answer to the original input question
 
 Now begin! Reminder to ALWAYS use the exact characters `Final Answer:` when you provide a definitive answer. """
 
-#chat method is the RECOMMENDED method to use in order to ensure a smooth transition between models
+# Dummy function
+def get_weather(location):
+    return f"the weather in {location} is sunny with low temperatures. \n"
+
+# First call: model sees the question and decides to use a tool
 output = client.chat.completions.create(
-    messages = [
-    {"role": "system", "content": SYSTEM_PROMPT},
-    {"role": "user", "content": "What's the weather in London?"},
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": "What's the weather in London?"},
     ],
     stream=False,
     max_tokens=1024,
     extra_body={'thinking': {'type': 'disabled'}},
 )
+
+print(output.choices[0].message.content)
+# Second call: feed the tool observation back so the model can produce a Final Answer
+messages = [
+    {"role": "system", "content": SYSTEM_PROMPT},
+    {"role": "user", "content": "What's the weather in London?"},
+    {"role": "assistant", "content": output.choices[0].message.content + "Observation:\n" + get_weather('London')},
+    ]
+
+output = client.chat.completions.create(
+    messages = messages,
+    stream=False,
+    max_tokens=1024,
+    #stop=["Observation:"], # Let's stop before any actual function is called
+    extra_body={'thinking': {'type': 'disabled'}},
+)
+
 print(output.choices[0].message.content)
