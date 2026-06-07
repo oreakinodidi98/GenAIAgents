@@ -1,0 +1,10 @@
+{
+  "product": "PROD001",
+  "name": "Wireless Noise-Canceling Headphones",
+  "description": "Premium wireless headphones with active noise cancellation, 30-hour battery life, and premium sound quality.",
+  "category": "Electronics",
+  "availability": true,
+  "releaseDate": "2025-06-15",
+  "tags": ["audio", "wireless", "noise-canceling", "bluetooth", "premium"],
+  "imageUrl": "https://example.com/images/headphones-001.jpg"
+}

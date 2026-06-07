@@ -1,0 +1,10 @@
+{
+  "product": "PROD002",
+  "name": "Ergonomic Mechanical Keyboard",
+  "description": "High-performance mechanical keyboard with customizable RGB lighting and ergonomic key layout.",
+  "category": "Electronics",
+  "availability": true,
+  "releaseDate": "2025-05-20",
+  "tags": ["keyboard", "mechanical", "gaming", "ergonomic", "rgb"],
+  "imageUrl": "https://example.com/images/keyboard-002.jpg"
+}

@@ -1,0 +1,10 @@
+{
+  "product": "PROD006",
+  "name": "Portable SSD External Storage",
+  "description": "2TB portable solid-state drive with USB 3.2 interface, water-resistant design, and 1050MB/s transfer speed.",
+  "category": "Storage",
+  "availability": true,
+  "releaseDate": "2025-01-25",
+  "tags": ["storage", "ssd", "portable", "water-resistant", "fast"],
+  "imageUrl": "https://example.com/images/ssd-006.jpg"
+}

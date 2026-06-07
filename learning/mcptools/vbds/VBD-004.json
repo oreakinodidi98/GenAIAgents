@@ -1,0 +1,10 @@
+{
+  "product": "PROD004",
+  "name": "Portable USB-C Power Bank",
+  "description": "65W power bank with multiple ports, fast charging, and compact design. Supports laptops and phones.",
+  "category": "Accessories",
+  "availability": true,
+  "releaseDate": "2025-03-05",
+  "tags": ["power-bank", "usb-c", "fast-charging", "portable", "universal"],
+  "imageUrl": "https://example.com/images/powerbank-004.jpg"
+}
