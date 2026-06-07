@@ -1,0 +1,10 @@
+{
+  "product": "PROD008",
+  "name": "Cable Management Kit",
+  "description": "Comprehensive cable organizer set with clips, sleeves, and labels for desktop and office cable management.",
+  "category": "Accessories",
+  "availability": true,
+  "releaseDate": "2024-11-22",
+  "tags": ["organization", "cables", "office", "storage", "minimal"],
+  "imageUrl": "https://example.com/images/cables-008.jpg"
+}

@@ -1,0 +1,10 @@
+{
+  "product": "PROD003",
+  "name": "4K Ultra HD Webcam",
+  "description": "Professional-grade webcam with 4K resolution, auto-focus, and built-in microphone for streaming and conferencing.",
+  "category": "Electronics",
+  "availability": false,
+  "releaseDate": "2025-04-10",
+  "tags": ["webcam", "4k", "streaming", "professional", "conference"],
+  "imageUrl": "https://example.com/images/webcam-003.jpg"
+}

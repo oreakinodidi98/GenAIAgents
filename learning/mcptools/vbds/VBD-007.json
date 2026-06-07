@@ -1,0 +1,10 @@
+{
+  "product": "PROD007",
+  "name": "Wireless Mouse Pro",
+  "description": "Ergonomic wireless mouse with precision tracking, 12-month battery life, and silent-click technology.",
+  "category": "Accessories",
+  "availability": true,
+  "releaseDate": "2024-12-10",
+  "tags": ["mouse", "wireless", "ergonomic", "silent", "precision"],
+  "imageUrl": "https://example.com/images/mouse-007.jpg"
+}

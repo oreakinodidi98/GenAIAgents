@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "vbd-mcp-local": {
+      "type": "sse",
+      "url": "http://localhost:7071/runtime/webhooks/mcp",
+      "type": "http"
+    }
+  },
+  "inputs": []
+}
