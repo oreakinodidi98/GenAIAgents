@@ -508,12 +508,85 @@ Azure AI services run in the cloud by default, but cloud deployment isn't always
 > - Managing costs and usage quotas
 > - Protect account keys
 
+### Configure Diagnostic Logging
+
+- Azure Monitor provides a centralized dashboard for logs and metrics across services.
+- AI service telemetry appears in Logs and Metrics, but there is no single built-in "AI-only" report by default.
+- To enable diagnostics for an Azure AI service:
+   - Go to Monitoring.
+   - Open Diagnostic settings.
+   - Select log/metric categories such as:
+      - Audit Logs
+      - Request and Response Logs
+      - Azure OpenAI Request Usage
+      - Trace Logs
+      - AllMetrics
+- You can route diagnostics to one or more destinations:
+   - Log Analytics workspace
+   - Storage account
+   - Event Hub
+   - Partner solutions
+- Azure Monitor commonly uses Log Analytics for query and analysis.
+- Storage and ingestion of diagnostic data incur additional cost.
+
+### Monitoring
+
+- Azure Monitor helps track health and usage for Azure AI services.
+- In Diagnostic settings, you can confirm which resources have diagnostics enabled.
+- Use either Logs or Metrics views.
+
+- Metrics:
+   - Select a Scope first.
+   - Choose the resource type/resource.
+   - Build charts over a selected time range (24 hours is the default).
+   - Typical metrics include latency (response time), successful calls, data in, and data out.
+
+- Logs:
+   - Query telemetry messages and events.
+   - Set the correct scope before querying.
+   - Use KQL (Kusto Query Language).
+
+### Manage Costs
+
+- Each Azure AI resource has its own pricing model, including multi-service accounts.
+- Many standalone services include a free tier.
+- Multi-service accounts are generally standard tier only (no free tier).
+- Use Cost Management + Billing in Azure to view usage trends and cost breakdowns.
+- You can download usage data for offline analysis.
+
+### Account Keys and Endpoints
+
+- The Keys and Endpoint menu provides the endpoint URL and access keys needed by your application.
+- Applications call the endpoint and authenticate using one valid key.
+
+#### Key Vault
+
+- Azure AI services support key-based authentication and identity-based access patterns.
+- Protect API keys and never hard-code secrets in source code or config files.
+- Use Azure Key Vault to store secrets and certificates securely.
+- In Azure AI services, access keys are treated as secrets.
+- After creating a Key Vault, grant yourself the required role assignment to access it.
+- Update application code to retrieve secrets from Key Vault at runtime.
+
+### Private Communication
+
+- Create a VNet in your resource group.
+- VNets are commonly used to isolate and secure communication between Azure resources.
+- For testing, default VNet settings can create a subnet automatically.
+- In Azure AI service Networking settings, default access is often set to allow all networks.
+   - This is less secure.
+   - Prefer Selected networks and private endpoints.
+   - Add your VNet so apps/VMs in that network can access the service privately.
+   - Optionally allow your current client IP for administrative access.
+- You can also disable public network access entirely.
+- Private endpoint notes:
+   - Uses Azure Private Link for private, point-to-point connectivity.
+   - Requires a VNet.
+   - Supports dynamic private IP allocation.
+   - Can use private DNS records for friendly endpoint resolution.
+   - Access still requires proper authorization.
 
 ---
-
-## Solution Areas
-
-The following sections provide deep dives into specific AI solution domains:
 
 ### Analyze Images
 
@@ -558,3 +631,41 @@ The following sections provide deep dives into specific AI solution domains:
 ### OpenAI Services
 
 > **Note**: Expand with GPT models, prompt engineering best practices, RAG implementation patterns
+
+## Demo
+
+### Set Up
+
+1. Go into C:\GenAI\Agents\learning\AI-102_Azure_AI\demo
+2. Set up Virtual enviroment ```python -m venv agent_env``` then ```agent_env\Scripts\activate```
+3. Install needed packages ```pip install langgraph langchain langchain-openai python-dotenv```
+4. For Azure repeat but  install ```pip install azure-ai-projects azure-identity msrest azure-keyvault-secrets azure-identity azure-cognitiveservices-vision-computervision```
+5. Create a requirements.txt from your current environment ```pip freeze > requirements.txt```
+   1. Or Install packages from an existing ```pip install -r requirements.txt```
+6. Start building
+
+### Troubleshooting
+
+- To allow foundry/AI service to enable API key authentication run the following
+
+```az
+# 1) Confirm the active subscription in Azure CLI
+az account show --query "{sub:id, tenant:tenantId, name:name}" -o table
+
+# 2) Save IDs
+$sub = "cb5b077c-3ef5-4b2e-83e5-490cc5ca0e19"
+$tenant = az account show --subscription $sub --query tenantId -o tsv
+
+# 3) Login Az PowerShell using GUID tenant
+Connect-AzAccount -Tenant $tenant -Subscription $sub
+
+# 4) Verify Az context
+Get-AzContext | Format-List Account, Subscription, Tenant, Environment
+
+Get-AzCognitiveServicesAccount |
+Where-Object { $_.DisableLocalAuth -eq $true -and $_.AccountName -and $_.ResourceGroupName -and $_.Id } |
+ForEach-Object {
+  Update-AzTag -ResourceId $_.Id -Tag @{SecurityControl='Ignore'} -Operation Merge | Out-Null
+  Set-AzCognitiveServicesAccount -ResourceGroupName $_.ResourceGroupName -Name $_.AccountName -DisableLocalAuth $false | Out-Null
+}
+```
