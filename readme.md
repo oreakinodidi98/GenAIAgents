@@ -72,5 +72,24 @@ The structure we've created tells our agent to:
 
 to allow foundry use bellow 
 ```az
-Get-AzCognitiveServicesAccount | Where-Object { $_.DisableLocalAuth -eq $true -and $_.AccountName -and $_.ResourceGroupName -and $_.Id } | ForEach-Object { Update-AzTag -ResourceId $_.Id -Tag @{SecurityControl='Ignore'} -Operation Merge | Out-Null; Set-AzCognitiveServicesAccount -ResourceGroupName $_.ResourceGroupName -Name $_.AccountName -DisableLocalAuth $false | Out-Null }
+# 1) Confirm the active subscription in Azure CLI
+az account show --query "{sub:id, tenant:tenantId, name:name}" -o table
+
+# 2) Save IDs
+$sub = "cb5b077c-3ef5-4b2e-83e5-490cc5ca0e19"
+$tenant = az account show --subscription $sub --query tenantId -o tsv
+
+# 3) Login Az PowerShell using GUID tenant
+Connect-AzAccount -Tenant $tenant -Subscription $sub
+
+# 4) Verify Az context
+Get-AzContext | Format-List Account, Subscription, Tenant, Environment
+
+Get-AzCognitiveServicesAccount |
+Where-Object { $_.DisableLocalAuth -eq $true -and $_.AccountName -and $_.ResourceGroupName -and $_.Id } |
+ForEach-Object {
+  Update-AzTag -ResourceId $_.Id -Tag @{SecurityControl='Ignore'} -Operation Merge | Out-Null
+  Set-AzCognitiveServicesAccount -ResourceGroupName $_.ResourceGroupName -Name $_.AccountName -DisableLocalAuth $false | Out-Null
+}
+
 ```
