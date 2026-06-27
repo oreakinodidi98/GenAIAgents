@@ -25,8 +25,19 @@ This document covers Microsoft Azure AI services and their solutions for buildin
     - [CI/CD for Custom AI Models](#cicd-for-custom-ai-models)
     - [Container Deployment](#container-deployment)
   - [Management, Monitoring, and Security](#management-monitoring-and-security)
-  - [Solution Areas](#solution-areas)
-    - [Analyze Images](#analyze-images)
+    - [Configure Diagnostic Logging](#configure-diagnostic-logging)
+    - [Monitoring](#monitoring)
+    - [Manage Costs](#manage-costs)
+    - [Account Keys and Endpoints](#account-keys-and-endpoints)
+      - [Key Vault](#key-vault)
+    - [Private Communication](#private-communication)
+    - [Content Moderation Solutions](#content-moderation-solutions)
+      - [AI content safety](#ai-content-safety)
+    - [Analyze Images ( Implement Computer vision solutions)](#analyze-images--implement-computer-vision-solutions)
+      - [Image Analysis](#image-analysis)
+      - [Detect Objects and generate tags](#detect-objects-and-generate-tags)
+      - [Pricing](#pricing)
+      - [OCR](#ocr)
     - [Custom Computer Vision Models](#custom-computer-vision-models)
     - [Analyze Videos](#analyze-videos)
     - [Analyze Text](#analyze-text)
@@ -37,6 +48,9 @@ This document covers Microsoft Azure AI services and their solutions for buildin
     - [Azure AI Search](#azure-ai-search)
     - [Document Intelligence](#document-intelligence)
     - [OpenAI Services](#openai-services)
+  - [Demo](#demo)
+    - [Set Up](#set-up)
+    - [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -510,58 +524,82 @@ Azure AI services run in the cloud by default, but cloud deployment isn't always
 
 ### Configure Diagnostic Logging
 
-- Azure Monitor provides a centralized dashboard for logs and metrics across services.
-- AI service telemetry appears in Logs and Metrics, but there is no single built-in "AI-only" report by default.
-- To enable diagnostics for an Azure AI service:
-   - Go to Monitoring.
-   - Open Diagnostic settings.
-   - Select log/metric categories such as:
-      - Audit Logs
-      - Request and Response Logs
-      - Azure OpenAI Request Usage
-      - Trace Logs
-      - AllMetrics
-- You can route diagnostics to one or more destinations:
-   - Log Analytics workspace
-   - Storage account
-   - Event Hub
-   - Partner solutions
-- Azure Monitor commonly uses Log Analytics for query and analysis.
-- Storage and ingestion of diagnostic data incur additional cost.
+**Purpose**: Centralize logs and metrics so you can audit usage, troubleshoot failures, and monitor service performance.
+
+Azure Monitor provides a unified dashboard across Azure services. AI service telemetry appears in **Logs** and **Metrics**, but there is no single built-in "AI-only" report by default.
+
+**How to enable diagnostics for an Azure AI service**:
+
+1. Go to **Monitoring**.
+2. Open **Diagnostic settings**.
+3. Select the log/metric categories you need, such as:
+   - Audit Logs
+   - Request and Response Logs
+   - Azure OpenAI Request Usage
+   - Trace Logs
+   - AllMetrics
+
+**Routing options** (one or more destinations):
+- Log Analytics workspace
+- Storage account
+- Event Hub
+- Partner solutions
+
+Azure Monitor commonly uses **Log Analytics** for querying and analysis.
+
+**Cost note**: Storage and ingestion of diagnostic data incur additional cost.
 
 ### Monitoring
 
-- Azure Monitor helps track health and usage for Azure AI services.
-- In Diagnostic settings, you can confirm which resources have diagnostics enabled.
-- Use either Logs or Metrics views.
+**Purpose**: Track service health, reliability, and usage over time.
 
-- Metrics:
-   - Select a Scope first.
-   - Choose the resource type/resource.
-   - Build charts over a selected time range (24 hours is the default).
-   - Typical metrics include latency (response time), successful calls, data in, and data out.
+Azure Monitor helps track health and usage for Azure AI services. In **Diagnostic settings**, you can verify which resources have diagnostics enabled.
 
-- Logs:
-   - Query telemetry messages and events.
-   - Set the correct scope before querying.
-   - Use KQL (Kusto Query Language).
+Use either **Metrics** or **Logs** depending on what you need.
+
+**Metrics**:
+- Select a **Scope** first.
+- Choose the resource type/resource.
+- Build charts over a selected time range (24 hours is the default).
+- Typical metrics include:
+  - Latency (response time)
+  - Successful calls
+  - Data in
+  - Data out
+
+**Logs**:
+- Query telemetry messages and events.
+- Set the correct scope before querying.
+- Use **KQL (Kusto Query Language)** for deep analysis.
 
 ### Manage Costs
+
+**Purpose**: Control spend and optimize service usage.
 
 - Each Azure AI resource has its own pricing model, including multi-service accounts.
 - Many standalone services include a free tier.
 - Multi-service accounts are generally standard tier only (no free tier).
-- Use Cost Management + Billing in Azure to view usage trends and cost breakdowns.
-- You can download usage data for offline analysis.
+
+Use **Cost Management + Billing** in Azure to:
+- View usage trends
+- Analyze cost breakdowns
+- Download usage data for offline analysis
 
 ### Account Keys and Endpoints
 
-- The Keys and Endpoint menu provides the endpoint URL and access keys needed by your application.
-- Applications call the endpoint and authenticate using one valid key.
+**Purpose**: Provide the connection details your application needs to call Azure AI services securely.
+
+The **Keys and Endpoint** menu provides:
+- Endpoint URL
+- Access keys
+
+Applications call the endpoint and authenticate using one valid key.
 
 #### Key Vault
 
-- Azure AI services support key-based authentication and identity-based access patterns.
+Azure AI services support key-based authentication and identity-based access patterns.
+
+**Best practices**:
 - Protect API keys and never hard-code secrets in source code or config files.
 - Use Azure Key Vault to store secrets and certificates securely.
 - In Azure AI services, access keys are treated as secrets.
@@ -570,67 +608,256 @@ Azure AI services run in the cloud by default, but cloud deployment isn't always
 
 ### Private Communication
 
-- Create a VNet in your resource group.
-- VNets are commonly used to isolate and secure communication between Azure resources.
-- For testing, default VNet settings can create a subnet automatically.
-- In Azure AI service Networking settings, default access is often set to allow all networks.
-   - This is less secure.
-   - Prefer Selected networks and private endpoints.
+**Purpose**: Limit exposure of AI services by routing traffic through private network paths.
+
+**Recommended network approach**:
+
+1. Create a **VNet** in your resource group.
+   - VNets isolate and secure communication between Azure resources.
+   - For testing, default VNet settings can create a subnet automatically.
+
+2. In Azure AI service **Networking** settings, avoid default open access:
+   - Default is often set to allow all networks (less secure).
+   - Prefer **Selected networks and private endpoints**.
    - Add your VNet so apps/VMs in that network can access the service privately.
    - Optionally allow your current client IP for administrative access.
-- You can also disable public network access entirely.
-- Private endpoint notes:
-   - Uses Azure Private Link for private, point-to-point connectivity.
-   - Requires a VNet.
-   - Supports dynamic private IP allocation.
-   - Can use private DNS records for friendly endpoint resolution.
-   - Access still requires proper authorization.
+
+3. You can disable **public network access** entirely for stricter security.
+
+**Private endpoint notes**:
+
+- Uses Azure Private Link for private, point-to-point connectivity.
+- Requires a VNet.
+- Supports dynamic private IP allocation.
+- Can use private DNS records for friendly endpoint resolution.
+- Access still requires proper authorization.
 
 ---
 
-### Analyze Images
+### Content Moderation Solutions
 
-> **Note**: Expand with vision-specific projects, image processing pipelines, OCR implementations
+> **Note**: Text moderation and Image moderation
+
+#### AI content safety
+
+- Azure AI Content Safety
+- Monitoring content that is generated by generative AI or humans
+- Detects and filters violent, hate, self harm , sexual content
+- Monitors text, images and both
+- Analyse human or AI generatied content
+- Text moderation can moderate the following
+  - Hate and fairnes
+  - sexual
+  - violence
+  - self harm
+- Can defime severity threshold
+- Drags a slider to chose level from low to high threshold
+- Happens in the content safety stoduio
+- contentsafety.cognitive.azure.com
+- Can use our own resource (single service resource)
+- Moderate text content -> can chose a sample or test your own
+- Image moderation
+- Judge against the same categories but for images
+- Can also get sample code -> shows the enpoints for your text and image safety
+
+---
+
+### Analyze Images ( Implement Computer vision solutions)
+
+**Purpose**: Use Azure AI Vision to analyze image content, detect objects, generate captions, and extract text with OCR.
+
+**Core Capabilities**:
+
+- Analyze images for visual features and semantic meaning
+- Build image processing pipelines for automation workflows
+- Implement OCR to extract printed and handwritten text
+
+**Practical Notes**:
+
+- You can increase confidence thresholds to return only higher-confidence detections.
+- You can generate captions that describe the image in natural language.
+- Smart cropping and aspect-ratio-aware cropping are supported to keep important visual content in frame.
+
+#### Image Analysis
+
+**Image Inputs**:
+
+- Azure AI Vision accepts multiple image formats for analysis.
+- There are multiple API versions (commonly v3.2 and v4.0).
+
+**Image requirements for v3.2**:
+
+- JPG, PNG, GIF, or BMP
+- Less than 4 MB
+- Greater than 50 x 50 pixels
+- Less than 10000 x 10000 pixels for OCR
+
+#### Detect Objects and generate tags
+
+**Tags**:
+
+- Describe context and concepts in a visual image (for example: "beach", "outdoor", "vehicle").
+
+**Objects**:
+
+- Detect physical objects and return location using bounding boxes.
+
+**Confidence behavior**:
+
+- Detection is never 100% certain; results always include varying confidence scores.
+
+#### Pricing
+
+Select only the features you actually need to reduce cost, especially for high-volume image workloads.
+
+#### OCR
+
+**Read API**:
+
+- The OCR API is called **Read**.
+- It can extract printed and handwritten text in supported languages.
+
+**How to test**:
+
+- In Azure Vision Studio, you can choose predefined examples or upload your own images.
+
+**Output format**:
+
+- Results are returned in JSON format.
+- The service processes image content from a URL and returns analysis response data.
+- OCR creates bounding boxes around detected words/lines.
+- Handwritten text is also supported.
+
+---
 
 ### Custom Computer Vision Models
 
-> **Note**: Include details on training custom vision models, transfer learning, optimization strategies
+**Purpose**: Train and personalize vision models using your own labeled images for domain-specific recognition tasks.
+
+Custom Vision enables you to build custom image models by assigning your own labels and training on your own datasets.
+
+**Model types**:
+
+1. **Image Classification**
+    - Predicts which category an image belongs to.
+    - Example: train labels for flower types, then predict the flower type in a new image.
+    - Does not locate objects; it only predicts category labels.
+
+2. **Object Detection**
+    - Identifies and locates objects within an image.
+    - Returns object location using **bounding boxes**.
+    - Useful for custom product detection and inventory-style use cases.
+
+**How to create a custom vision model**:
+
+1. Collect images for training.
+2. Choose model type: classification or object detection.
+3. In Vision Studio, go to image analysis and customize models with your images.
+
+**Dataset and labeling workflow**:
+
+- Datasets are image collections used for training and testing.
+- Store images in blobs (linked storage account).
+- Labeling options:
+   - Manual labeling
+   - Azure ML data labeling project
+- For Azure ML data labeling, create a workspace first.
+- Define label categories before tagging images.
+- Start labeling in Azure ML by assigning tags to each image.
+- Import the generated **COCO** file back into Vision Studio.
+- The COCO export creates JSON metadata used to train the model.
+
+**Training and evaluation**:
+
+- Train the model using the prepared dataset.
+- Keep a separate test dataset that was not used for training.
+- Longer training can improve results (training duration is configurable).
+- After training, custom models include default evaluation using a subset of training data.
+- You can also run evaluation with your separate test dataset for more realistic validation.
+
+**Publishing and consumption**:
+
+- After creating a custom model, it can be consumed with the correct credentials, endpoint URL, and model name.
+- There is no single dedicated "publish" button in this flow; usage is driven by endpoint + model identification.
+- Consume the custom vision model from applications by calling the appropriate endpoint.
 
 ### Analyze Videos
 
-> **Note**: Cover video processing workflows, temporal analysis, real-time processing considerations
+> **Note**: Covers using Azure AI Video Indexer to extract insights, Azure AI Vision Spatial Analysis to detect presence and movement
+
+- Videos can be viewed as a sequence of images
+- Azure AI Video Indexer: Extract Insihgts from a video or live stream
+  - Web App that analyses the content of a video and gives insights like:
+    - Transcripts
+    - OCR
+    - Faces
+    - Topics
+    - Audio Effects
+    - Text based emotions
+  - Portal at videoindexer.AI
+- Azure AI Vision Spatioal Analysis to detect presence and movement of people in video
+  - Examinine the objects in a video and the relationship with each other E.G store context and tracking peoples movevemt and analysing the objects in a space
+  - Can use visual image studio to do this
 
 ### Analyze Text
 
 > **Note**: Expand with NLP pipelines, text classification examples, sentiment analysis use cases
 
+- NLP -> Natural language processing
+- Extract Key phrases
+  - Analyse a piece of text and extracting key elements
+  - Main concept and phrases from a text providing insihgts into themes and topics
+  - Can call from language studio; rest API; or Docker container (To run on prem)
+  - Support multiple languages
+  - More text you give better it performs
+  - rest API: https://<endpoint>/language/:analyse-text
+  - Azure.ai.TextAnalytics
+  - In Language Studion -> part of Cogniticee services -> need a language resource
+  - 
+- Extract enteties
+- Determine sentiment of text
+- Detect language used in text
+- Detect Personally Identifiable Information (PII) in text
+
 ### Process Speech
 
 > **Note**: Include speech recognition, speaker identification, audio quality considerations
+
+- 
 
 ### Translate Language
 
 > **Note**: Cover translation APIs, multilingual chatbots, real-time translation workflows
 
+- 
+
 ### Language Understanding Models
 
 > **Note**: Expand with LUIS, custom language models, intent recognition patterns
+
+- 
 
 ### QnA Solutions
 
 > **Note**: Include QnA Maker implementation, knowledge base design, custom question answering setup
 
+- 
+
 ### Azure AI Search
 
 > **Note**: Expand with indexing strategies, semantic search, knowledge mining implementations
+
+- 
 
 ### Document Intelligence
 
 > **Note**: Include document extraction examples, custom model training, form processing workflows
 
+
 ### OpenAI Services
 
 > **Note**: Expand with GPT models, prompt engineering best practices, RAG implementation patterns
+
 
 ## Demo
 
