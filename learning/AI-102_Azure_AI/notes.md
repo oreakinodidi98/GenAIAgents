@@ -40,8 +40,8 @@ This document covers Microsoft Azure AI services and their solutions for buildin
       - [OCR](#ocr)
     - [Custom Computer Vision Models](#custom-computer-vision-models)
     - [Analyze Videos](#analyze-videos)
-    - [Analyze Text](#analyze-text)
-    - [Process Speech](#process-speech)
+    - [Analyze Text by using Azure AI Language](#analyze-text-by-using-azure-ai-language)
+    - [Process Speech by using Azure AI speech](#process-speech-by-using-azure-ai-speech)
     - [Translate Language](#translate-language)
     - [Language Understanding Models](#language-understanding-models)
     - [QnA Solutions](#qna-solutions)
@@ -783,81 +783,573 @@ Custom Vision enables you to build custom image models by assigning your own lab
 
 ### Analyze Videos
 
-> **Note**: Covers using Azure AI Video Indexer to extract insights, Azure AI Vision Spatial Analysis to detect presence and movement
+**Purpose**: Extract insights from videos and perform real-time spatial analysis using Azure AI video services.
 
-- Videos can be viewed as a sequence of images
-- Azure AI Video Indexer: Extract Insihgts from a video or live stream
-  - Web App that analyses the content of a video and gives insights like:
-    - Transcripts
-    - OCR
-    - Faces
-    - Topics
-    - Audio Effects
-    - Text based emotions
-  - Portal at videoindexer.AI
-- Azure AI Vision Spatioal Analysis to detect presence and movement of people in video
-  - Examinine the objects in a video and the relationship with each other E.G store context and tracking peoples movevemt and analysing the objects in a space
-  - Can use visual image studio to do this
+Videos are conceptually a sequence of images; Azure AI applies frame-by-frame analysis to extract temporal patterns and insights.
 
-### Analyze Text
+**Two Core Services**:
 
-> **Note**: Expand with NLP pipelines, text classification examples, sentiment analysis use cases
+1. **Azure AI Video Indexer**
+   - Web app that analyses the full content of a video or live stream.
+   - Portal: [videoindexer.ai](https://videoindexer.ai)
+   - Extracts insights such as:
+     - Transcripts (speech-to-text)
+     - OCR (text visible in frames)
+     - Faces (identification and tracking)
+     - Topics (themes discussed)
+     - Audio effects (music, noise, silence)
+     - Text-based emotions (tone analysis)
 
-- NLP -> Natural language processing
-- Extract Key phrases
-  - Analyse a piece of text and extracting key elements
-  - Main concept and phrases from a text providing insihgts into themes and topics
-  - Can call from language studio; rest API; or Docker container (To run on prem)
-  - Support multiple languages
-  - More text you give better it performs
-  - rest API: https://<endpoint>/language/:analyse-text
-  - Azure.ai.TextAnalytics
-  - In Language Studion -> part of Cogniticee services -> need a language resource
-  - 
-- Extract enteties
-- Determine sentiment of text
-- Detect language used in text
-- Detect Personally Identifiable Information (PII) in text
+2. **Azure AI Vision Spatial Analysis**
+   - Detects presence and movement of people within a video.
+   - Examines objects in a scene and their spatial relationships to each other.
+   - Example: Retail store context — tracking customer movement and analyzing objects in a space.
+   - Can be configured and tested in Azure Vision Studio.
 
-### Process Speech
+### Analyze Text by using Azure AI Language
 
-> **Note**: Include speech recognition, speaker identification, audio quality considerations
+**Purpose**: Apply Natural Language Processing (NLP) to extract meaning, entities, sentiment, and sensitive data from text.
 
-- 
+**Access methods**:
+- Azure AI Language Studio
+- REST API
+- Docker container (for on-premises deployment)
+
+**Prerequisite**: A Language resource (part of Azure Cognitive Services).
+
+**REST API format**:
+```
+https://<endpoint>/language/:analyse-text
+```
+**SDK**: `Azure.AI.TextAnalytics`
+
+---
+
+**Key Text Analysis Capabilities**:
+
+1. **Key Phrase Extraction**
+   - Analyses text and extracts key concepts, themes, and phrases.
+   - Provides insights into the main topics of a document.
+   - Supports multiple languages.
+   - More input text generally improves results.
+
+2. **Entity Extraction (Named Entity Recognition)**
+   - Identifies physical and real-world entities: people, places, objects, job titles, addresses, names, emails, events, phone numbers, skills, etc.
+   - Can build a custom model for domain-specific entity types.
+   - Testable in AI Language Studio.
+
+3. **Sentiment Analysis and Opinion Mining**
+   - Determines whether text is positive, negative, or neutral.
+   - Returns a confidence score between 0 and 1.
+   - Never 100% confident; always probabilistic.
+   - Enabling **opinion mining** extracts additional insights (e.g., aspect-level sentiment).
+   - Common use case: product reviews, social media monitoring.
+   - Configurable in Language Studio.
+
+4. **Language Detection**
+   - Detects which language a piece of text is written in.
+   - Supports more than 100 languages.
+   - Handles languages with multiple scripts (e.g., Arabic can also be written in Latin script).
+   - Returns a confidence score between 0 and 1.
+
+5. **PII Detection (Personally Identifiable Information)**
+   - Detects, blocks, and removes sensitive personal data from text.
+   - Examples: phone numbers, names, email addresses, national IDs — anything that could identify an individual.
+   - Critical for compliance, privacy, and data redaction workflows.
+
+### Process Speech by using Azure AI speech
+
+**Purpose**: Convert between spoken audio and text, and control speech synthesis output using Azure AI Speech services.
+
+**Core Capabilities**:
+
+1. **Text-to-Speech**
+   - Converts written text into natural-sounding audio.
+   - **Prosody**: models stress and intonation patterns in speech, making output sound more human and natural.
+   - Supports customizable AI voices.
+   - You can tune output parameters: rate, pitch, pauses, and more.
+   - Use cases: voice assistants, accessibility, audio content generation.
+   - Can also run in containers (local enviroment and reducing latency)
+   - Falls under Responsible AI Guidlines
+   - There is a speech studio
+     - Need to creaate speech service and select resource to try itout
+     - Can use Audio sample (pre build voices), human voices or customization
+
+2. **Speech-to-Text**
+   - Understang spoken human speech and been able to translate that
+   - Converts spoken audio into written text.
+   - Supports real-time and batch transcription.
+   - can create a glossary for specific qords and provide alternatives of how to pronouce it
+   - Use cases: transcription, voice commands, accessibility.
+   - Real time speach, batch speach , transltion, assesment
+   - Adds punction to text when translating or transcribing
+   - Phrase list: put word in there that i think might appear and it will take it into consideration
+
+3. **Speech Synthesis Markup Language (SSML)**
+   - XML-based language for fine-tuning synthesized speech output.
+   - Control speaking rate, pitch, pauses, pronunciation, and voice style.
+   - Allows expressive and natural-sounding text-to-speech responses.
+   - Define the emotion thats been expressed whilst you are talking
+   - programming language , create text to speeach give clues to the AI on structure and how to say things
+
+4. **Intent Recognition**
+   - Combines speech-to-text with language understanding to detect a user's intent from spoken input.
+   - Integrates with LUIS or Azure AI Language models.
+   - Use cases: voice-driven applications, conversational AI.
+   - Computer extracts and intention of what you want
+   - 2 ways of doing this in Azure AI speech service
+   - Pattern matching
+     - Specific words and phrases triggerss the intenttion 
+     - The user ha to be trained to tell the computer to do something
+   Conversation Language understanding (CLU)
+     - used to be called LUIS
+     - User speech is transcribed into text
+     - intetntion API with language service 
+     - Take text and pass it to language service to get users intention
+     - Needs to be trained does not come out of the box samples
+     - Done through language studio not speech studio
+     - Can use a Basic (demo) or Advanced Model to train
+
+5. **Keyword Recognition**
+   - Detects specific trigger words or phrases in a continuous audio stream.
+   - Lightweight and can run on-device (edge).
+   - Use cases: wake words (e.g., "Hey Cortana"), hotword detection.
+   - Device is always listening
+   - but not always sending what you are saying to the cloud
+   - has on device key word recognition and then send to cloud to verify and to ac on the key word so speach to text which ten gets sent over to the service that determines the intention
+   - Key word recognition is done on the cloud
+   - Works in speach studio
+     - create model, description and KEyword to activate this
+     - then creates several pronounciations audio that you can agree or disagree to activate thisthen choose model type (Basic or advanced)then creates y word project allowing you to programm applications to react to key word
 
 ### Translate Language
 
-> **Note**: Cover translation APIs, multilingual chatbots, real-time translation workflows
+**Purpose**: Translate text, documents, and speech using Azure AI Translator for multilingual applications.
 
-- 
+**Core service**: Azure AI Translator (separate resource type from Azure AI Language resource).
+
+**Key characteristics**:
+
+- Pay-per-character pricing model
+- Supports containerization
+- Supports three translation patterns:
+   - Synchronous
+   - Asynchronous
+   - Real-time
+
+**Document Translation Workflow (Language Studio)**:
+
+1. Use **Azure AI Translator** resource (not Language resource).
+2. Enable managed identity (required for storage access).
+3. Connect to a storage account.
+    - Assign **Storage Blob Data Contributor** role to the translator identity.
+4. Configure CORS (Cross-Origin Resource Sharing) on storage account.
+    - For demos, you can allow all origins.
+5. Select up to 10 target languages.
+6. Upload source files and write outputs to a storage container.
+7. Optionally add a glossary file for custom term translation.
+8. Download translated results automatically when complete.
+
+**Important constraints**:
+
+- Managed identity is not available in all global-region scenarios.
+- Free tier limitations apply to some translation workflows.
+
+**Custom Translation**:
+
+- Tune the model for your domain, industry, or business language.
+- Training data options:
+   - **Parallel documents**: paired source-target training sets (minimum around 10,000 sentence pairs).
+   - **Dictionary data**: term-by-term custom mappings.
+- Evaluation uses **BLEU score** (0-100); higher is better.
+
+**Speech Translation Scenarios**:
+
+1. **Speech-to-Speech**
+    - Most complex scenario (for example, international conferences).
+    - Single pipeline: speech-to-text -> text translation -> text-to-speech.
+
+2. **Speech-to-Text Translation**
+    - Simpler than full speech-to-speech.
+    - Convert speech to text first, then translate text to target language.
+
+3. **Multiple Target Languages Simultaneously**
+    - Add multiple target languages in studio or API call.
+    - Improves latency/user experience for multilingual audiences.
+    - Cost still scales per character per target language (so it does not reduce cost).
 
 ### Language Understanding Models
 
-> **Note**: Expand with LUIS, custom language models, intent recognition patterns
+**Purpose**: Understand user intent from natural language using Conversation Language Understanding (CLU).
 
-- 
+**Platform note**:
+
+- LUIS (Language Understanding) has been retired and replaced by **CLU**.
+
+**Core concepts**:
+
+- **Utterance**: What a user says or types.
+- **Intent**: The action/task the app should perform.
+   - **None intent**: default fallback when an utterance does not match any defined intent.
+- **Entities**: Key data points extracted from utterances (for example: quantity, size, toppings, type).
+
+**Data and labeling requirements**:
+
+- Requires training data.
+- Label utterances with intents.
+- Tag entities manually in utterances.
+- Minimum of 10 utterances to train a model.
+- Availability is region-dependent.
+
+**Building in Language Studio**:
+
+1. Use a Language-type resource.
+2. Create your catalog of intents.
+3. In the Data tab, map utterances to intents.
+    - Optionally use AI-assisted utterance suggestions.
+4. Tag entity spans in the utterances.
+
+**Training jobs**:
+
+- Create a training job and give it a name.
+- Model modes:
+   - **Standard**: faster, English-only.
+   - **Advanced**: more fine-tuned, multilingual, higher cost.
+- Use data splitting to choose training vs testing percentages.
+- Only one training job can run at a time.
+
+**Deployment and testing**:
+
+- Deploy trained models to test intent recognition behavior.
+- Common use case: chatbot intent routing.
+
+**Availability and resilience considerations**:
+
+- Plan for backup and recovery.
+- Maintain a hot backup in another region with the same model.
+- Copy configuration/settings from source to backup region.
+- Watch for configuration drift between regions.
 
 ### QnA Solutions
 
 > **Note**: Include QnA Maker implementation, knowledge base design, custom question answering setup
 
-- 
+- Chatbot
+- Under Azure AI language
 
 ### Azure AI Search
 
-> **Note**: Expand with indexing strategies, semantic search, knowledge mining implementations
+**Purpose**: Build intelligent search experiences over your own data with full-text, vector, and semantic ranking capabilities.
 
-- 
+**Background**:
+
+- Azure AI Search (formerly Azure Cognitive Search) is a search engine for your own data.
+- It supports traditional full-text search and modern vector search.
+- It can ingest heterogeneous/unstructured content and make it searchable.
+
+**Core capabilities**:
+
+- Rich query syntax
+- Indexing features such as chunking, OCR, and image description enrichment
+- Semantic ranking using AI language understanding
+- Security, scaling, and integration with other Azure services
+
+**How it works**:
+
+1. Connect data where it already exists.
+2. Build a search index over that data.
+3. Process user queries against the index.
+4. Your app retrieves and displays results.
+
+**Index internals**:
+
+- Input text is tokenized and stored in an **inverted index**.
+- Input vectors are stored in a **vector index**.
+
+---
+
+**Create an Azure AI Search service**:
+
+- Service name becomes part of your endpoint URL.
+- Pricing tiers include: Free, Basic, Standard, High Density, and Storage Optimized.
+- Tier cannot be changed after deployment.
+- One tier per region.
+
+**Scaling model**:
+
+- **Replicas** = query workers (2 or 3 replicas for stronger SLA scenarios).
+- **Partitions** = index sharding across servers for larger indexes and higher throughput.
+
+---
+
+**Create data sources**:
+
+Azure AI Search can index from several Azure data stores, including:
+
+- Azure Blob Storage
+- Azure Data Lake
+- Azure SQL Database
+- Azure Table Storage
+- Azure Cosmos DB
+
+Additional notes:
+
+- JSON structures are commonly used to define and map data.
+- Authentication can use managed identity or key-based access.
+
+---
+
+**Indexes (schema design)**:
+
+An index is like a database schema for searchable content.
+
+Define fields and properties such as:
+
+- Field name
+- Data type
+- Retrievable
+- Searchable
+- Filterable
+- Sortable
+- Facetable
+
+Field behavior:
+
+- **Retrievable**: field can be returned to the UI/search result payload.
+- **Searchable**: field participates in full-text matching.
+- **Filterable**: field can be used to narrow result sets.
+- **Sortable**: field can be used to order results.
+- **Facetable**: field can power drill-down navigation/facets.
+
+Design note:
+
+- More fields increase index size and re-indexing time.
+- Example fields: blob URL, author, creation date.
+
+Index creation options:
+
+- Manual schema creation
+- Import-data wizard to scaffold index structure
+
+**Enrichment during indexing**:
+
+- Use OCR and other enrichment to combine text + image-derived content.
+
+**Indexer**:
+
+- A scheduled job that crawls source data and rebuilds/updates the index periodically.
+
+---
+
+**Skills and skillsets**:
+
+- A **skillset** is a reusable collection of enrichment skills attached to an indexer.
+- You can attach an Azure AI Services resource to run cognitive enrichments.
+
+**Built-in skills** include:
+
+- Key phrase extraction
+- Custom entity lookup
+- Language detection
+- Entity linking
+- Entity recognition
+- PII detection
+- Sentiment analysis
+- Translation
+- Image analysis
+- OCR
+
+**Built-in utility skills** include:
+
+- Conditional skill
+- Document extraction skill
+- Text merge skill
+- Shaper skill
+- Split skill
+
+**Custom skills**:
+
+- Your own enrichment code for specific requirements.
+- Exposed as a Web API called by the indexer.
+- Operates on JSON payloads.
+- Should run in the same region as the indexer for performance and reliability.
+
+Enrichment outputs can be mapped into additional index fields.
+
+---
+
+**Run and query**:
+
+1. Create and run an indexer.
+2. Query the index using:
+    - Search Explorer
+    - REST API calls
+    - A generated/demo app (for example, a simple HTML search UI)
 
 ### Document Intelligence
 
-> **Note**: Include document extraction examples, custom model training, form processing workflows
+**Purpose**: Extract text, key-value pairs, layout, and structured data from documents using prebuilt or custom AI models.
 
+**Background**:
+
+- Azure AI Document Intelligence was previously called **Form Recognizer**.
+- It is designed to turn semi-structured and unstructured documents into usable data.
+
+**What it can do**:
+
+- Extract text from documents
+- Extract key-value pairs
+- Analyze document layout and structure
+- Classify document types
+- Convert forms into structured data for storage or further processing
+
+**Common document examples**:
+
+- Invoices
+- Utility bills
+- Tax forms
+
+---
+
+**Model types**:
+
+1. **Prebuilt models**
+   - Ready-to-use models for common document types.
+   - Good for fast setup and standard scenarios.
+
+2. **Classification models**
+   - Identify which type of document is being processed.
+
+3. **Custom neural models**
+   - Trained on a large collection of example data.
+   - Useful when document formats vary but still follow learnable patterns.
+
+4. **Custom template models**
+   - Best when documents follow a consistent visual template.
+
+5. **Custom composed models**
+   - A collection of models grouped together for broader document handling.
+
+---
+
+**Provisioning and access**:
+
+- Create a **Document Intelligence** resource in Azure.
+- Use **Document Intelligence Studio** to test and build solutions.
+- Studio URL: `documentintelligence.ai.azure.com`
+- Access uses the usual **endpoint and key** model.
+
+**Pricing tiers**:
+
+- **Free tier** and **Standard tier** are available.
+- Free tier includes around **500 pages per month**.
+
+**Document limits**:
+
+- Up to **2000 pages** for PDF processing.
+- Free tier supports fewer pages per request (for example, up to 2 pages in some cases).
+
+---
+
+**Core capabilities in practice**:
+
+- **Read**: extract text from documents
+- **Layout**: detect structure, sections, tables, and arrangement
+- **Text extraction / processing**: capture data that can be stored in a database or downstream system
+
+**Typical workflow**:
+
+1. Create a Document Intelligence resource.
+2. Open Document Intelligence Studio.
+3. Choose a capability such as Read, Layout, or a prebuilt/custom model.
+4. Provide a document.
+5. Review extracted text, fields, and structure.
+6. Use the results in applications, workflows, or databases.
+
+**Practical note**:
+
+- You can test the experience in the studio using endpoint/key access, including scenarios where you have access to an existing resource.
+- The end goal is to extract useful document data for further automation and processing.
 
 ### OpenAI Services
 
-> **Note**: Expand with GPT models, prompt engineering best practices, RAG implementation patterns
+**Purpose**: Use Azure OpenAI Service to build generative AI applications for text, chat, retrieval-based answers, and image generation.
 
+**What Azure OpenAI provides**:
+
+- Access to powerful **Large Language Models (LLMs)**
+- Human-like text generation
+- Chat-based interactions
+- Prompt-driven completions
+- Retrieval-Augmented Generation (RAG)
+- Fine-tuning and custom model adaptation
+- Image generation with DALL-E
+
+**Foundational concepts**:
+
+- **LLM (Large Language Model)**: A model trained on massive amounts of text that can generate highly human-sounding responses.
+- **Prompts and completions**: You give the model an input prompt, and it returns a completion/response.
+- **Tokens**: Models have limits based on token count rather than raw characters or words.
+- **Prompt engineering**: Adjust the prompt structure and instructions to produce the output you want.
+
+**Historical note**:
+
+- The idea of machine-generated text being indistinguishable from human conversation relates to the **Turing Test**.
+- Modern public interest in generative AI accelerated significantly after ChatGPT was released in November 2022.
+
+**RAG and fine-tuning**:
+
+1. **Retrieval-Augmented Generation (RAG)**
+    - Provides relevant source information as part of the model input.
+    - Reduces hallucinations by grounding responses in trusted content.
+    - Useful for enterprise knowledge bases and document-based assistants.
+
+2. **Fine-tuning**
+    - Takes an existing LLM and retrains/adapts it with additional task-specific data.
+    - Produces a more specialized model for a domain or use case.
+    - Typically a later-stage optimization after prompt engineering and RAG have been explored.
+
+**Provisioning Azure OpenAI Service**:
+
+1. Search for **Azure OpenAI** in Azure.
+2. Create the resource.
+    - Access is gated, so approval/justification may be required.
+3. Pricing is generally **Standard tier** only (no free tier).
+4. Networking can be restricted to selected networks/private access.
+5. Manage model deployments in **Azure OpenAI Studio**.
+    - Choose which model to deploy.
+    - Each deployment creates an endpoint for inference.
+
+**Models and deployments**:
+
+- The **Quotas** tab shows which models and capacity you can access.
+- **Deployments** are the actual callable model endpoints created inside your Azure OpenAI resource.
+
+**Completion vs chat**:
+
+1. **Completion-style generation**
+    - Generates natural language from a plain prompt.
+    - Does not inherently maintain chat context.
+    - Without grounding or careful prompting, answers may hallucinate (make up information).
+
+2. **Chat playground**
+    - Better suited for conversational scenarios.
+    - Includes:
+       - **System message**: sets the assistant behavior/personality
+       - User input
+       - Parameter configuration
+       - View code option for implementation examples
+
+**Prompt and model configuration**:
+
+- **Temperature** affects creativity/randomness.
+- Different models produce different styles and quality of output.
+- Chat playground is designed for multi-turn sessions rather than one-off messages.
+
+**Image generation with DALL-E 3**:
+
+- You can ask for an image in natural language.
+- The model generates an image based on the prompt description.
 
 ## Demo
 
