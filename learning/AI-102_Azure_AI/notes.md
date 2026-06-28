@@ -1035,7 +1035,12 @@ https://<endpoint>/language/:analyse-text
 > **Note**: Include QnA Maker implementation, knowledge base design, custom question answering setup
 
 - Chatbot
-- Under Azure AI language
+- Under Azure AI language studio
+- uses NLP to create a chatbot using your own data
+- good for static information on website ( things that dont change date to date)
+- submit the same question and get the same answer
+- conversation flow -> direct the conversation around a crtain path
+- Low code solution
 
 ### Azure AI Search
 
