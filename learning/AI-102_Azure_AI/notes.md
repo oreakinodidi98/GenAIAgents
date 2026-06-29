@@ -1032,15 +1032,74 @@ https://<endpoint>/language/:analyse-text
 
 ### QnA Solutions
 
-> **Note**: Include QnA Maker implementation, knowledge base design, custom question answering setup
+**Purpose**: Build low-code question answering chatbots using your own content in Azure AI Language Studio.
 
-- Chatbot
-- Under Azure AI language studio
-- uses NLP to create a chatbot using your own data
-- good for static information on website ( things that dont change date to date)
-- submit the same question and get the same answer
-- conversation flow -> direct the conversation around a crtain path
-- Low code solution
+**What it is**:
+
+- A chatbot-oriented question answering solution under Azure AI Language.
+- Uses NLP to answer questions from your custom knowledge base.
+- Best suited for relatively static information (content that does not change frequently).
+- Typically returns consistent answers for the same question.
+
+**Why use it**:
+
+- Low-code setup experience.
+- Easy integration with websites and bot front-ends.
+- Supports structured conversation flow and follow-up prompts.
+
+---
+
+**Setup process**:
+
+1. Create a new project in Azure AI Language Studio.
+2. Connect or create an Azure AI Search resource.
+3. Choose language settings for the project.
+4. Set project name and default fallback answer.
+5. Add sources for the knowledge base.
+
+**Knowledge base content options**:
+
+- Manual question-answer pairs.
+- Imported external sources (auto-structure detection supported), such as:
+   - Q&A files
+   - Text files
+   - PDF files
+   - External URLs
+
+---
+
+**Testing and confidence tuning**:
+
+- Test with generated `curl` commands from deployment/code samples.
+- Test with the prediction URL directly.
+- Adjust confidence threshold to control response acceptance.
+
+**Deployment flow**:
+
+1. Promote/copy knowledge base from test index to production index.
+2. Integrate with Azure Bot Service (front-end bot layer).
+3. Connect bot service to App Service (or your hosting layer).
+4. Set Language resource key as an environment variable in App Service.
+
+---
+
+**Conversation design features**:
+
+- **Multi-turn conversations**:
+   - Add follow-up prompts.
+   - Link follow-up paths to existing questions.
+
+- **Alternate phrasing**:
+   - Add alternate question phrasings.
+   - Visualize intent/context tree.
+
+- **Chit-chat personality**:
+   - Add personality responses for more natural interactions.
+
+**Backup and portability**:
+
+- Export knowledge base as training data for backup.
+- Export formats include Excel/TSV.
 
 ### Azure AI Search
 
