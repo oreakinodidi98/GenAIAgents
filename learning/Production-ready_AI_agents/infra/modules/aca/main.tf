@@ -1,3 +1,14 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+    }
+    azapi = {
+      source = "azure/azapi"
+    }
+  }
+}
+
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_container_app_environment" "aca_environment" {
@@ -75,7 +86,7 @@ resource "azurerm_container_app" "mcp_server_open_web_search" {
 
 resource "azapi_resource" "aca_session_pool_shell" {
   type                      = "Microsoft.App/sessionPools@2025-02-02-preview"
-  parent_id                 = azurerm_resource_group.rg.id
+  parent_id                 = var.resourcegroup_id
   name                      = var.aca_session_pool_shell
   location                  = var.location
   schema_validation_enabled = false
@@ -118,9 +129,9 @@ resource "azurerm_role_assignment" "aca_session_pool_shell_contributor" {
 
 resource "azapi_resource" "aca_session_pool_python" {
   type                      = "Microsoft.App/sessionPools@2025-02-02-preview"
-  parent_id                 = azurerm_resource_group.rg.id
-  name                      = "aca-sessionpool-python"
-  location                  = azurerm_resource_group.rg.location
+  parent_id                 = var.resourcegroup_id
+  name                      = var.aca_session_pool_python
+  location                  = var.location
   schema_validation_enabled = false
   response_export_values    = ["properties.poolManagementEndpoint", "properties.mcpServerSettings.mcpServerEndpoint"]
 

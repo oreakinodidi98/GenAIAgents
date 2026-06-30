@@ -15,3 +15,5 @@ variable "aca_session_pool_shell" {
 
 variable "aca_session_pool_python" {
 }
+variable "resourcegroup_id" {
+}
