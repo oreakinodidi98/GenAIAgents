@@ -6,7 +6,7 @@ terraform {
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = ">= 4.58.0"
     }
     azuread = {
       source  = "hashicorp/azuread"
@@ -22,7 +22,7 @@ terraform {
     }
     azapi = {
       source  = "azure/azapi"
-      version = "~> 1.0"
+      version = ">= 2.8.0"
     }
   }
   #initialise the backend
@@ -36,6 +36,7 @@ terraform {
 
 }
 provider "azurerm" {
+  use_cli = true
   features {
     key_vault {
       purge_soft_delete_on_destroy    = false
