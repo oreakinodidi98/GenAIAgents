@@ -38,6 +38,12 @@ This section introduces the core ideas behind production-ready AI agents: why th
     - [Troubleshooting Cosmos](#troubleshooting-cosmos)
     - [Create Manually (If Needed)](#create-manually-if-needed)
   - [Human in the loop](#human-in-the-loop)
+    - [Why use HITL](#why-use-hitl)
+    - [What happens at runtime](#what-happens-at-runtime)
+    - [Human decisions](#human-decisions)
+    - [Typical policy setup](#typical-policy-setup)
+    - [Flow examples used in this repo](#flow-examples-used-in-this-repo)
+    - [Notes and best practices](#notes-and-best-practices)
   - [Before and After Model Hooks](#before-and-after-model-hooks)
   - [Sub agent orchestration](#sub-agent-orchestration)
   - [Logging and observability with LangSmith](#logging-and-observability-with-langsmith)
@@ -632,19 +638,58 @@ az cosmosdb sql container create `
 
 Add human approval/review steps for high-risk or sensitive actions.
 
-- Pause Agents to keep human in controll before agents take any risky actions
-- Agent pauses for review before tool runs
-- Approve to run as is
-- Edit-> adjust the argument then run
-- Reject-> block and steer the agent
-- high stae tool calls get a human checkpoint before execution
-- For sensitive operations you often want a human in the loop to review, edit, approve, or reject a proposed action before it executes
-- LangChain's HumanInTheLoopMiddleware makes this easy
-- when the model proposes a tool call that matches the configured policy, the middleware fires an interrupt that pauses execution.
+### Why use HITL
+
+- Pause agents to keep humans in control before risky actions.
+- High-stakes tool calls get a human checkpoint before execution.
+- For sensitive operations, a reviewer can inspect, edit, approve, or reject a proposed action.
+
+### What happens at runtime
+
+1. The model proposes a tool call.
+2. If the tool matches your `interrupt_on` policy, `HumanInTheLoopMiddleware` emits an interrupt and pauses execution.
+3. A human reviews pending actions.
+4. The workflow resumes with one decision per pending action.
+
+### Human decisions
+
+- Approve: run the proposed tool call as-is.
+- Edit: adjust arguments, then run the edited action.
+- Reject: block execution and steer the agent to a safer path.
+- Respond: send a human instruction back to the agent without running the tool.
+
+### Typical policy setup
+
+- `write_file`: interrupt and allow full decisions (`approve`, `edit`, `reject`, `respond`).
+- `execute_sql`: interrupt but restrict to `approve` or `reject` (no SQL editing).
+- `read_data`: allow directly with no interrupt.
+
+### Flow examples used in this repo
+
+- SQL flow: propose `execute_sql` -> interrupt appears -> human approves -> tool executes.
+- File-write flow: propose `write_file` -> interrupt appears -> human edits path/content -> edited tool executes.
+
+### Notes and best practices
+
+- Use a checkpointer (for example `InMemorySaver`) because HITL pauses/resumes require persisted graph state.
+- Keep `thread_id` stable for a given review session; use a different `thread_id` for independent sessions.
+- If no interrupt appears, the model may have responded in text instead of issuing a tool call. Prompt more explicitly (for example: "Call the execute_sql tool now...").
+- Log interrupts and final decisions for auditability.
 
 ## Before and After Model Hooks
 
 Use before/after model hooks to validate inputs, inject guardrails, and post-process outputs.
+
+- More fine grained control
+- Run custom logic before and after each model call
+- Allows you to inspect, modify or guard agent behaviour automatically
+- This allows us to access and manipulate the agent's short-term memory (state) at different stages of the agent's execution
+- run code before and after model calls in LangChain agents using @before_model and @after_model middleware
+- Before hook: inspects/rewrite the prompt
+- model call: The LLM generates a responce
+- After hook: Inspect or Modify the output
+- Guard: Enforce policies with midldleware
+- The middleware hooks wrap each model call
 
 ## Sub agent orchestration
 
