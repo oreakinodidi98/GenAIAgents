@@ -28,6 +28,15 @@ This section introduces the core ideas behind production-ready AI agents: why th
     - [Demo 5.4.1: Download Files from the Session](#demo-541-download-files-from-the-session)
     - [Troubleshooting: Azure CLI Token Timeout](#troubleshooting-azure-cli-token-timeout)
   - [AI Agent Memory (Cosmos DB)](#ai-agent-memory-cosmos-db)
+    - [What This Enables](#what-this-enables)
+    - [LangGraph Memory Model](#langgraph-memory-model)
+    - [InMemory vs Cosmos DB](#inmemory-vs-cosmos-db)
+    - [Architecture](#architecture)
+    - [Managing Long Conversations](#managing-long-conversations)
+    - [Demo Mapping](#demo-mapping)
+    - [End-to-End Memory Flow (Cosmos)](#end-to-end-memory-flow-cosmos)
+    - [Troubleshooting Cosmos](#troubleshooting-cosmos)
+    - [Create Manually (If Needed)](#create-manually-if-needed)
   - [Human in the loop](#human-in-the-loop)
   - [Before and After Model Hooks](#before-and-after-model-hooks)
   - [Sub agent orchestration](#sub-agent-orchestration)
@@ -237,33 +246,37 @@ Expected output:
 
 ## Dynamic Sessions
 
-Use dynamic sessions to maintain context per user/session, isolate state, and support long-running interactions.
+Use Dynamic Sessions to run code in isolated, short-lived sandboxes while keeping your local machine safe.
 
-- You can create a sandboxed code interpreter with Azure Container Apps Dynamic Sessions.
-- This allows the agent to write and run real code safely.
-- The environment can include Python REPL and Bash/Shell.
-- Each session is a fresh isolated container, so execution is separated from your host environment.
-- Inside the sandbox, the agent can run code and perform file I/O.
-  
-1. Spin up a Dynamic Session pool on ACA.
-2. Use Python REPL to run code safely.
-3. Use Bash/Shell to allow agents to execute commands.
-4. Use File I/O to upload and download files.
+Why this matters:
 
-Process:
+- You get real execution power (Python and Bash) without running untrusted code on your host.
+- You can do file upload/download in the sandbox and move results back locally.
+- You can combine shell + Python tools in a single agent workflow.
 
-1. Run Terraform. This creates Container App session pools for Python and Shell.
-   - This uses Azure Container Apps to create sandboxes for both Python and Shell.
-   - Configuration defines pool setup and dynamic pool management.
-   - You will use the pool management endpoint to connect and send commands.
+Core capabilities:
+
+1. Python REPL execution.
+2. Bash command execution.
+3. Remote file upload/download.
+4. Per-session isolation (clean boundary from host environment).
+
+Setup and run sequence:
+
+1. Provision Dynamic Session pools with Terraform (Python and Shell pools).
 2. Activate virtual environment:
    - `agent_env\Scripts\activate`
-3. Set Dynamic Session endpoints in your environment:
+3. Ensure environment variables are configured:
    - `SESSIONPOOL_MANAGEMENT_ENDPOINT_PYTHON`
    - `SESSIONPOOL_MANAGEMENT_ENDPOINT_SHELL`
-   - (Optional) MCP endpoint variants if your flow uses them.
-4. Run demo:
+4. Log in to Azure CLI:
+   - `az login`
+   - `az account show`
+5. Run demos as needed:
    - `python Demo5.py`
+   - `python Demo5.1.py`
+   - `python Demo5.2.py`
+   - `python Demo5.4.py`
 
 ### Demo 5: Python REPL in ACA Dynamic Sessions
 
@@ -277,6 +290,12 @@ What the demo does:
 2. Requests an access token for `https://dynamicsessions.io/.default`.
 3. Sends Python code into the sandboxed session for execution.
 4. Returns tool output back to the model for final response synthesis.
+
+Observed output pattern:
+
+- Human prompt displayed.
+- Tool call for `Python_REPL`.
+- Tool output returned and summarized by the model.
 
 Example question:
 
@@ -301,6 +320,11 @@ Flow in `Demo5.1.py`:
 3. Upload file to the session.
 4. Execute Python code in-session to read JSON and compute a result.
 5. Print upload metadata and execution output.
+
+Observed output pattern:
+
+- Uploaded remote file path is printed.
+- In-session computation result is printed (for the JSON sum).
 
 Run:
 
@@ -337,6 +361,14 @@ Flow in `Demo5.2.py`:
 4. Run `cat /app/codeInterpreterConf.yaml` to inspect interpreter config.
 5. Run `curl -s ifconfig.me/ip` to inspect outbound session IP.
 
+Observed output pattern:
+
+- Each command prints a structured JSON payload with:
+   - `stdout`
+   - `stderr`
+   - `exitCode`
+- This makes it easy to validate command success/failure programmatically.
+
 Run:
 
 1. Activate virtual environment:
@@ -372,6 +404,13 @@ Flow in `Demo5.4.py`:
 2. Create one agent with both tools.
 3. Run a practical task prompt (for example: fetch 4 years of MSFT history and save `msft_4y.png`).
 4. Stream tool decisions and model outputs.
+
+Observed output pattern:
+
+1. Agent calls Bash to check/import dependencies.
+2. Agent installs missing packages (`yfinance`, `pandas`, `matplotlib`).
+3. Agent generates chart and reports saved artifact (for example `msft_4y.png`).
+4. Agent confirms date range and completion summary.
 
 Run:
 
@@ -424,6 +463,19 @@ image = Image.open("./output/msft_5y.png")
 image.show()
 ```
 
+Important path guidance from demo runs:
+
+- Prefer filename-style remote download paths (for example `msft_4y.png`) when using `download_file`.
+- Absolute paths such as `/mnt/data/msft_4y.png` may fail depending on API expectations and URL path handling.
+- In current demo flow, file transfer runs after chart generation to avoid early 404s.
+
+Observed output pattern:
+
+1. Upload response with remote metadata.
+2. Session file listing showing generated artifacts.
+3. Download response (or actionable error if artifact not present yet).
+4. Optional local image preview if Pillow is installed.
+
 Run notes:
 
 1. Ensure `./output` exists (or create it before download).
@@ -442,6 +494,7 @@ Why it happens:
 
 - The Python REPL tool depends on Azure CLI credential flow.
 - If Azure CLI is not logged in, slow to start, or pointing at the wrong account/tenant, token acquisition can fail.
+- First token acquisition in a fresh shell can be slower on Windows.
 
 Fix steps:
 
@@ -456,18 +509,138 @@ Fix steps:
 5. Re-run:
    - `python Demo5.py`
 
+Also check:
+
+1. Ensure credential timeout is not too low in code.
+2. Confirm endpoint environment variables are present and not empty.
+3. Verify session pool endpoints belong to the same subscription/tenant context as your CLI login.
+
 Implementation note:
 
 - In `Demo5.py`, token acquisition timeout was increased and error messaging was improved so failures provide clear recovery guidance.
 
-
 ## AI Agent Memory (Cosmos DB)
 
-Use Cosmos DB-backed memory for persistence across sessions, user personalization, and long-term context retrieval.
+Use memory to preserve context across turns and sessions.
+
+### What This Enables
+
+- Give agent short-term memory.
+- Use a Cosmos DB checkpointer to persist the agent state.
+- Manage multi-turn conversations (agent recalls earlier turns) with threads (separate memory per conversation thread).
+- Summarize long thread conversations so they do not blow up and exceed the context window.
+- Make memory useful and safe.
+- Reduce tokens per request (less cost and lower latency) while keeping conversations coherent and affordable.
+
+### LangGraph Memory Model
+
+- Short-term memory in LangGraph is implemented via checkpointers, which save a snapshot of graph state at every step.
+- You can assign a thread_id to a conversation. The checkpointer persists messages across invocations, so the agent remembers what was said earlier.
+
+### InMemory vs Cosmos DB
+
+- InMemorySaver works for prototyping, but it loses all state when the process restarts.
+- For production workloads, use a durable backend.
+- Azure Cosmos DB provides global distribution, serverless pricing, automatic indexing, and Microsoft Entra ID support for secure keyless authentication.
+
+### Architecture
+
+User -> LangGraph Agent -> Self-hosted LLM (vLLM on ACA)
+                                 |
+                                 v
+                     CosmosDB Checkpointer
+                     (persists conversation state per thread)
+
+### Managing Long Conversations
+
+- Long conversations can exceed the LLM context window.
+- Solutions include:
+   - Trim messages: remove first or last N messages before calling the LLM.
+   - Delete messages: remove messages from LangGraph state if they are not useful.
+   - Summarize messages: summarize earlier history and replace it with a summary.
+   - Custom strategies: for example message filtering to send only important messages to the LLM.
+- This allows the agent to track conversation state without exceeding the context window.
+- Trimming/removing can lose important details from message culling. Some apps benefit from summarizing message history with a chat model.
+
+### Demo Mapping
+
+- Demo6.1.py shows summarization with InMemorySaver.
+   - Uses InMemorySaver for summarization.
+   - Can use different models.
+- Demo6.py shows durable memory with Cosmos DB.
+
+### End-to-End Memory Flow (Cosmos)
+
+- Need the Cosmos DB instance deployed initially.
+- Store required environment variables.
+- Ensure model connectivity to Microsoft Foundry.
+- Use the model to create a LangChain agent with memory.
+- Create a Cosmos DB checkpointer.
+- Start a multi-turn conversation.
+- Use config with a thread ID to give each conversation a unique thread in Cosmos DB.
+- In Cosmos DB Data Explorer, you can see persisted messages.
+
+### Troubleshooting Cosmos
+
+```powershell
+az account set --subscription <value>
+
+$rg = <"rg">
+$account = "<name>"
+$principal = <"ID">
+
+$roleDefId = az cosmosdb sql role definition list `
+   --resource-group $rg `
+   --account-name $account `
+   --query "[?roleName=='Cosmos DB Built-in Data Contributor'].id | [0]" `
+   --output tsv
+
+az cosmosdb sql role assignment create `
+   --resource-group $rg `
+   --account-name $account `
+   --scope "/" `
+   --principal-id $principal `
+   --role-definition-id $roleDefId
+
+az cosmosdb sql role assignment list `
+   --resource-group $rg `
+   --account-name $account `
+   --query "[?principalId=='$principal']"
+```
+
+### Create Manually (If Needed)
+
+```powershell
+$acct = "cosmosdbagentmemorea629a1"
+
+# Create DB expected by demo6.py
+az cosmosdb sql database create `
+   --resource-group $rg `
+   --account-name $acct `
+   --name "langgraph-memory"
+
+# Create container expected by demo6.py
+az cosmosdb sql container create `
+   --resource-group $rg `
+   --account-name $acct `
+   --database-name "langgraph-memory" `
+   --name "checkpoints" `
+   --partition-key-path "/partition_key"
+```
 
 ## Human in the loop
 
 Add human approval/review steps for high-risk or sensitive actions.
+
+- Pause Agents to keep human in controll before agents take any risky actions
+- Agent pauses for review before tool runs
+- Approve to run as is
+- Edit-> adjust the argument then run
+- Reject-> block and steer the agent
+- high stae tool calls get a human checkpoint before execution
+- For sensitive operations you often want a human in the loop to review, edit, approve, or reject a proposed action before it executes
+- LangChain's HumanInTheLoopMiddleware makes this easy
+- when the model proposes a tool call that matches the configured policy, the middleware fires an interrupt that pauses execution.
 
 ## Before and After Model Hooks
 
