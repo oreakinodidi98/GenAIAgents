@@ -85,7 +85,7 @@ def fetch_webpage_content(url: str, timeout: float = 10.0) -> str:
 
 # Test the agent with a simple question that requires reasoning and tool usage.
 question = (
-    "What are the latest open and closed-source LLM models in 2026 July?\n"
+    "What are the latest open and closed-source LLM models in 2026 ?\n"
     "Compare their capabilities and limitations.\n"
     "Search the web sequentially, inspect a reasonable number of high-quality sources, and fetch relevant webpages.\n"
     "Do not issue a tool call unless you have valid arguments for it.\n"

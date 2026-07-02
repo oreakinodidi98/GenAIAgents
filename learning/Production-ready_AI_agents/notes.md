@@ -46,7 +46,17 @@ This section introduces the core ideas behind production-ready AI agents: why th
     - [Notes and best practices](#notes-and-best-practices)
   - [Before and After Model Hooks](#before-and-after-model-hooks)
   - [Agent orchestration](#agent-orchestration)
+    - [Why use sub-agents](#why-use-sub-agents)
+    - [Core architecture](#core-architecture)
+    - [When to use sub-agents](#when-to-use-sub-agents)
+    - [When not to use sub-agents](#when-not-to-use-sub-agents)
+    - [Benefits](#benefits)
+    - [Orchestration types](#orchestration-types)
+    - [Practical best practices](#practical-best-practices)
   - [Logging and observability with LangSmith](#logging-and-observability-with-langsmith)
+    - [Why LangSmith](#why-langsmith)
+    - [What to track](#what-to-track)
+    - [Recommended practice](#recommended-practice)
 
 ## Why We Need Agents
 
@@ -695,35 +705,81 @@ Use before/after model hooks to validate inputs, inject guardrails, and post-pro
 
 Use sub-agent orchestration to split complex tasks into specialized responsibilities and aggregate results.
 
-- Sub-agents solve the context bloat problem.
-- When agents use tools with large outputs (web search, file reads, database queries), the context window fills up quickly with intermediate results.
-- Sub-agents isolate this detailed work, the main agent receives only the final result, not the dozens of tool calls that produced it.
-- use sub agents when:
-  - Multi-step tasks that would clutter the main agent's context
-  - Specialized domains that need custom instructions or tools
-  - Tasks requiring different model capabilities
-  - When you want to keep the main agent focused on high-level coordination
-- Dont use for:
-  - Simple, single-step tasks
-  - need to maintain intermediate context
-  - overhead outweighs benefits
+### Why use sub-agents
+
+- Sub-agents solve the context-bloat problem.
+- When agents use tools with large outputs (web search, file reads, database queries), the context window fills quickly with intermediate results.
+- Sub-agents isolate detailed work. The main agent receives only final summaries, not dozens of intermediate tool calls.
+
+### Core architecture
+
 - A main agent coordinates subagents as tools.
 - All routing passes through the main agent.
-- In the subagents architecture, a central main agent (often referred to as a supervisor) coordinates subagents by calling them as tools.
+- In this architecture, a central main agent (often called a supervisor) calls subagents as tools.
 - The main agent decides which subagent to invoke, what input to provide, and how to combine results.
-- Subagents are stateless, they don’t remember past interactions, with all conversation memory maintained by the main agent.
-- This provides context isolation: each subagent invocation works in a clean context window, preventing context bloat in the main conversation.
-- Use the subagents pattern when you have multiple distinct domains (e.g., calendar, email, CRM, database), subagents don’t need to converse directly with users, or you want centralized workflow control.
-- Benefits include:
-  - Speed
-  - Less error prone
-  - Cheaper
-- Orchastration type
-  - suppervisor -> one lead organises and delegates
-  - sequential -> each agent hands its output to the next
-  - Parrallel -> agents work at the same time and you aggregate results
-  - Handoff -> agents pass controll to each other
+- Subagents are typically stateless and do not remember past interactions.
+- Conversation memory is maintained by the main agent.
+- This provides context isolation: each subagent invocation starts with a clean context window, reducing context bloat in the main conversation.
+
+### When to use sub-agents
+
+- Multi-step tasks that would clutter the main agent context.
+- Specialized domains that need custom instructions or tools.
+- Tasks requiring different model capabilities.
+- Workflows where you want the main agent focused on high-level coordination.
+- Scenarios with multiple distinct domains (for example calendar, email, CRM, or database).
+- Cases where subagents do not need to converse directly with users.
+- Systems that require centralized workflow control.
+
+### When not to use sub-agents
+
+- Simple single-step tasks.
+- Cases where you must maintain all intermediate context in one place.
+- Situations where orchestration overhead outweighs the benefits.
+
+### Benefits
+
+- Faster execution.
+- Less error-prone execution.
+- Lower cost.
+
+### Orchestration types
+
+1. Supervisor: one lead agent organizes and delegates tasks.
+2. Sequential: each agent hands output to the next agent.
+3. Parallel: multiple agents run at the same time and results are aggregated.
+4. Handoff: one agent passes control to another agent.
+
+### Practical best practices
+
+- Keep clear contracts for each subagent tool (inputs, outputs, and failure behavior).
+- Return compact, structured outputs from subagents to reduce token use.
+- Add fallback handling when one subagent fails so the main agent can continue with partial results.
+- Log routing decisions (which subagent was called and why) for debugging and auditability.
 
 ## Logging and observability with LangSmith
 
 Use LangSmith for traces, evaluations, debugging, and performance monitoring of agent workflows.
+
+### Why LangSmith
+
+- Gives full visibility into every agent run.
+- Enables tracing across model calls, tool calls, and middleware steps.
+- Lets you inspect calls and intermediate states.
+- Helps debug failures and improve quality over time.
+- Makes LLM systems observable and easier to reason about.
+
+### What to track
+
+- End-to-end run traces.
+- Tool call inputs and outputs.
+- Latency and token usage per step.
+- Errors, retries, and fallback paths.
+- Prompt and response changes during iteration.
+
+### Recommended practice
+
+- Trace every run in development.
+- Keep tracing enabled in staging/production with appropriate sampling.
+- Use consistent run metadata (environment, version, scenario, thread_id) for easier filtering.
+- Review traces regularly to identify bottlenecks, prompt issues, and tool reliability problems.
