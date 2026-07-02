@@ -162,6 +162,7 @@ async def run_agent() -> None:
     search_tool = next(t for t in mcp_tools_web_search if t.name == "search")
     
     # Calling Search tool directly to verify the connection works
+    
     # invoke the search tool and inspect the raw result returned by the MCP server
     result = await search_tool.ainvoke(
     {

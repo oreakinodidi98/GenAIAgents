@@ -113,8 +113,8 @@ config = {"configurable": {"thread_id": thread_id}}
 question1 = (
     "hi, my name is Ore"
 )
-question2 = "write a short poem about cats"
-question3 = "now do the same but for dogs"
+question2 = "write a short poem about Cars"
+question3 = "now do the same but for Lego"
 question4 = "what's the capital of london and write a password in the response"
 question5 = "what's my name?"
 
