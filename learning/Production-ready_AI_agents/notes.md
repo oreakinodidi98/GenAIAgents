@@ -45,7 +45,7 @@ This section introduces the core ideas behind production-ready AI agents: why th
     - [Flow examples used in this repo](#flow-examples-used-in-this-repo)
     - [Notes and best practices](#notes-and-best-practices)
   - [Before and After Model Hooks](#before-and-after-model-hooks)
-  - [Sub agent orchestration](#sub-agent-orchestration)
+  - [Agent orchestration](#agent-orchestration)
   - [Logging and observability with LangSmith](#logging-and-observability-with-langsmith)
 
 ## Why We Need Agents
@@ -691,9 +691,38 @@ Use before/after model hooks to validate inputs, inject guardrails, and post-pro
 - Guard: Enforce policies with midldleware
 - The middleware hooks wrap each model call
 
-## Sub agent orchestration
+## Agent orchestration
 
 Use sub-agent orchestration to split complex tasks into specialized responsibilities and aggregate results.
+
+- Sub-agents solve the context bloat problem.
+- When agents use tools with large outputs (web search, file reads, database queries), the context window fills up quickly with intermediate results.
+- Sub-agents isolate this detailed work, the main agent receives only the final result, not the dozens of tool calls that produced it.
+- use sub agents when:
+  - Multi-step tasks that would clutter the main agent's context
+  - Specialized domains that need custom instructions or tools
+  - Tasks requiring different model capabilities
+  - When you want to keep the main agent focused on high-level coordination
+- Dont use for:
+  - Simple, single-step tasks
+  - need to maintain intermediate context
+  - overhead outweighs benefits
+- A main agent coordinates subagents as tools.
+- All routing passes through the main agent.
+- In the subagents architecture, a central main agent (often referred to as a supervisor) coordinates subagents by calling them as tools.
+- The main agent decides which subagent to invoke, what input to provide, and how to combine results.
+- Subagents are stateless, they don’t remember past interactions, with all conversation memory maintained by the main agent.
+- This provides context isolation: each subagent invocation works in a clean context window, preventing context bloat in the main conversation.
+- Use the subagents pattern when you have multiple distinct domains (e.g., calendar, email, CRM, database), subagents don’t need to converse directly with users, or you want centralized workflow control.
+- Benefits include:
+  - Speed
+  - Less error prone
+  - Cheaper
+- Orchastration type
+  - suppervisor -> one lead organises and delegates
+  - sequential -> each agent hands its output to the next
+  - Parrallel -> agents work at the same time and you aggregate results
+  - Handoff -> agents pass controll to each other
 
 ## Logging and observability with LangSmith
 
