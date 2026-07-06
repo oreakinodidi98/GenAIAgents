@@ -40,7 +40,6 @@ langsmith_project = require_env('LANGSMITH_PROJECT_NAME')
 
 
 # Set up LangSmith Tracing
-
 print("LangSmith tracing enabled:", lsu.tracing_is_enabled())
 print("LangSmith endpoint:", langsmith_endpoint)
 print("LangSmith project:", langsmith_project)
@@ -93,11 +92,9 @@ def fetch_webpage_content(url: str, timeout: float = 10.0) -> str:
 
 # Test the agent with a simple question that requires reasoning and tool usage.
 question = (
-    "What are the latest open and closed-source LLM models in 2026?\n"
-    "Compare their capabilities and limitations.\n"
-    "Search the web sequentially, inspect a reasonable number of high-quality sources, and fetch relevant webpages.\n"
-    "Do not issue a tool call unless you have valid arguments for it.\n"
-    "Cite your references at the end of the response."
+    "I am building a high-scale, privacy-focused customer support automation platform. I need you to research the top 3 open-source and top 3 closed-source LLMs currently available in July 2026.\n\n"
+    "Create a comparative decision matrix for me that balances: (1) Reasoning capability on complex multi-step workflows, (2) Cost-per-million-tokens, (3) Data privacy/compliance risks, and (4) Context window limitations.\n\n"
+    "Finally, recommend a 'hybrid' architecture where I use a larger frontier model for edge-case reasoning and a smaller/local model for routine tasks. Justify your choice based on current latency and cost data."
 )
 
 # Stream agent execution asynchronously and print the latest agent response.
@@ -119,7 +116,9 @@ async def run_agent() -> None:
 
     # result is already a list — extract the "text" field and parse it
     data = json.loads(result[0]["text"])
+    print("\n=== MCP SEARCH SANITY CHECK (RAW TOOL OUTPUT) ===")
     print(json.dumps(data, indent=4))
+    print("=== END SANITY CHECK ===\n")
 
     # Create an agent with the remote search tool and the local fetch_webpage_content tool.
     agent_tools = [search_tool, fetch_webpage_content]
