@@ -1,0 +1,26 @@
+name: Auto Merge Dependabot PRs
+on:
+#   pull_request:
+    # types: [opened, synchronize, reopened]
+    # branches:
+    #   - main
+    workflow_dispatch:
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    steps:
+      - name: Checkout code # Cloud hosted runners have a read-only GITHUB_TOKEN by default, so we need to check out the code to be able to push changes back to the repository.
+        uses: actions/checkout@v3
+
+      - name: Auto-merge Dependabot PRs
+        uses: pascalgn/automerge-action@v0.15.3
+        with:
+          mergeMethod: squash
+          commitMessage: title+body
+          command: merge
+          target: minor # Target version updates only (major updates will not be auto-merged)
+          approve: true # Automatically approve the PR before merging
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
