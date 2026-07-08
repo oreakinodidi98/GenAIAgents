@@ -1,16 +1,17 @@
 from dotenv import load_dotenv
 import os
-import asyncio
-
-# --- OpenTelemetry (OPTIONAL — remove if you don't need tracing) ---
-# Instruments Azure SDK calls and exports traces to Azure Monitor / Application Insights.
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from azure.identity.aio import DefaultAzureCredential
-from agent_framework import ChatAgent
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from agent_framework_foundry_hosting import ResponsesHostServer
+from azure.identity import DefaultAzureCredential
 from agent_framework.azure import AzureAIAgentClient, AzureAISearchContextProvider
-from azure.ai.agentserver.agentframework import from_agent_framework
+# from azure.ai.agentserver.agentframework import from_agent_framework
+
+# --- OpenTelemetry (OPTIONAL) ---
+# Instruments Azure SDK calls and exports traces to Azure Monitor / Application Insights.
+# from opentelemetry import trace
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 #APPLICATIONINSIGHTS_CONNECTION_STRING = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 # if APPLICATIONINSIGHTS_CONNECTION_STRING:
@@ -24,7 +25,7 @@ from azure.ai.agentserver.agentframework import from_agent_framework
 #     )
 #     trace.set_tracer_provider(provider)
 
-#from agent_framework.openai import OpenAIChatClient
+
 load_dotenv() # Load environment variables from .env file
 
 AZURE_AI_PROJECT_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
@@ -53,11 +54,11 @@ def main() -> None:
         mode="agentic",
         knowledge_base_output_mode="answer_synthesis",
     )
-    # Step 3: Build the ChatAgent
+    # Step 3: Build the agent
     # - name/id: identifier for this agent
     # - instructions: your agent's system prompt
     # - context_providers: list of knowledge sources (can be empty [])
-    agent = ChatAgent(
+    agent = Agent(
         client,
         name="UWL-agent",
         id="uwl-agent",
@@ -69,7 +70,11 @@ def main() -> None:
     # This automatically creates a REST API on port 8088 with /responses endpoint
     # POST /responses  — receives user messages, returns agent responses
     # GET  /readiness  — health check for Foundry
-    from_agent_framework(agent).run()
+    # from_agent_framework(agent).run()
+
+    # or
+    server = ResponsesHostServer(agent)
+    server.run(port=8088)
 
 if __name__ == "__main__":
     main()
