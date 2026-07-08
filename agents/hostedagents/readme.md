@@ -2,6 +2,111 @@
 
 Deploy a **Microsoft Agent Framework** agent as a managed hosted service on **Azure AI Foundry**. Foundry handles scaling, identity, networking, and observability — you just bring the code.
 
+Foundry is positioned as a strong hosting platform for many types of agents. With Toolbox integration, it can connect agents to different environments, tools, and business systems.
+
+Key ideas:
+
+- Move from MVP agents to production agents.
+- Use Foundry as a managed platform for compute, governance, and observability.
+- Connect agents to the broader enterprise environment through tools, systems, and protocols.
+
+## Challenge
+
+There is often a lot of engineering work to think through before you even start writing agent code.
+
+Core challenges include:
+
+- Infrastructure planning.
+- Agent lifespan and lifecycle management.
+- Identity and governance.
+- Agent identity for every agent from Entra.
+- Fragmented tooling.
+- Tool access, authorization, and authentication.
+
+Foundry is also open by design:
+
+- Build with any framework or protocol.
+- Support OpenAI SDK-style response endpoints.
+- Expose an invocation endpoint.
+
+## Common scenarios
+
+- Customer service and deflection.
+- SRE copilot.
+- Sales and deal desk.
+- Finance and back-office automation.
+- Knowledge worker assistant.
+- Engineering productivity.
+
+## Capability Map
+
+### Authoring and Developer Experience
+
+- `azd ai` agent CLI.
+
+### Frameworks and Models
+
+- Microsoft Agent Framework is recommended.
+- You can bring any framework you want.
+
+### Runtime and Platform Capabilities
+
+- Hosted Agent Runtime.
+- Capability service.
+
+### Identity and Governance
+
+- Identity and governance controls are part of the platform story.
+
+### Observability
+
+- Application Insights.
+- OpenTelemetry.
+- Evaluations and continuous monitoring.
+
+### Channels and Publishing
+
+- Tight integration for publishing and channel connectivity.
+
+## Hosted Agents Compute Platform
+
+Foundry hosted agents use a newer compute platform designed around how agents are built and run.
+
+### Platform characteristics
+
+- New compute platform targeting agent workloads.
+- New backend built on **MicroVMs**.
+- Can create snapshots of your code.
+- When you create an agent, the image is downloaded and a local snapshot is created, which helps reduce cold-start time.
+- If an agent is idle, compute is stopped but the session is persisted.
+- Agents can upload files.
+- One MicroVM is created per session.
+
+### Isolation and efficiency
+
+- Every user session is completely isolated.
+- Compute is no longer shared across sessions.
+- This is more secure and more isolated.
+- It allows you to use only a small amount of compute associated with that session.
+- You do not pay when your agent is not doing work.
+- The agent can start in less than a second because the MicroVM is hydrated quickly.
+
+### Manifest and resource creation
+
+- `agent.manifest.yaml` is a YAML file that acts as a driver for the `azd ai` extension and for creating Foundry resources.
+- It specifies which resources should be created as part of deployment and utilization.
+
+### Development and publishing flow
+
+- You can develop agents locally.
+- Then move into Foundry Toolkit and use Agent Inspector.
+- You can publish into Foundry.
+- The agent gets deployed through ACR tasks and a remote build process.
+- Foundry creates an image and then creates an agent version of that image, making it available in the cloud.
+- The user provides the platform with an image stored in ACR.
+- Foundry pulls that image and creates an agent version from it.
+- Foundry then uses a MicroVM-backed execution model so that when a call arrives, the container can start very quickly.
+
 ## How It Works
 
 1. **Write your agent** using `ChatAgent` from the Microsoft Agent Framework SDK.
