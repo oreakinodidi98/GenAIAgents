@@ -74,7 +74,7 @@ pydantic==2.10.5
 pydantic-settings==2.7.1
 pydantic_core==2.27.2
 Pygments==2.19.1
-PyJWT==2.10.1
+PyJWT==2.13.0
 PyMeta3==0.5.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
