@@ -7,5 +7,6 @@
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.projectLanguageModel": 2,
-    "azureFunctions.mcpProjectType": "McpExtensionServer"
+    "azureFunctions.mcpProjectType": "McpExtensionServer",
+    "iis.configDir": ""
 }

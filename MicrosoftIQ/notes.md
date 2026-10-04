@@ -8,6 +8,9 @@
 - To leverage AI capabilities with agents, I need to feed the model additional enterprise information.
 - The higher the relevance of that data, the better the AI response.
 - The model essentially needs additional enterprise context.
+- Microsoft IQ unifies an organization’s flow of work, operations, and knowledge into one shared, trusted intelligence layer
+- Even the most advanced AI agents today lack a unified, complete understanding of the organizations they support.
+- This addresses a fundamental gap in enterprise AI.
 
 ### Goal
 
@@ -33,8 +36,12 @@ Data signals include:
 - Learns how you work, communicate, structure your day, what you care about, and your objectives.
 - Creates actions based on your rhythm of work.
 - Learns company-wide processes.
+- semantic index- M365 content (word documents, calendar, email etc )
 - Uses tuned inferencing capabilities.
 - Improves interaction quality across data, apps, and workflows.
+- Work IQ connects AI to how employees work across the organization.
+- It synthesizes signals from people, documents, emails, meetings, and workflows to maintain continuity as work changes, so Copilot and agents understand what is active, who is involved, and what needs attention now.
+
 
 ## Institutional Knowledge
 
@@ -92,6 +99,9 @@ Example combined context:
 - Emails, messages, and meetings.
 - Contracts and institutional documents.
 - Business state and operational data.
+
+Microsoft IQ is not a single feature, it is built from four powerful, complementary IQ elements. Together, they form the engine that gives agents true awareness of your people, your business, and your knowledge–including the world's knowledge.
+
 
 ## Where It Is Consumed
 

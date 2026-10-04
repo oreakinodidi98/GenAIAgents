@@ -34,15 +34,15 @@
 
 Aim: Build an agent that can analyze text documents. The agent will be able to understand what kind of text it's looking at, identify important information within it, and create concise summaries. Essentoially creating an intelligent research assistant that can help us understand documents quickly and thoroughly.
 
-1. Set up Virtual enviroment ```python -m venv agent_env``` then ```agent_env\Scripts\activate```
-2. Install needed packages ```pip install langgraph langchain langchain-openai python-dotenv```
+1. Set up Virtual enviroment ``python -m venv agent_env`` then ``agent_env\Scripts\activate``
+2. Install needed packages ``pip install langgraph langchain langchain-openai python-dotenv``
 3. Set Up  OpenAI API [Key](https://platform.openai.com/signup)
    1. Navigate to the API Keys section
    2. Create new secret key
    3. Copy  API key
-4. Create .env file and store value for ```OPENAI_API_KEY```
+4. Create .env file and store value for ``OPENAI_API_KEY``
 5. build
-6. For Azure repeat but  install ```pip install azure-ai-projects azure-identity'```
+6. For Azure repeat but  install ``pip install azure-ai-projects azure-identity'``
 
 ![End Goal](image.png)
 
@@ -70,7 +70,8 @@ The structure we've created tells our agent to:
 
 ## Trouble shooting
 
-to allow foundry use bellow 
+to allow foundry use bellow
+
 ```az
 # 1) Confirm the active subscription in Azure CLI
 az account show --query "{sub:id, tenant:tenantId, name:name}" -o table
@@ -91,5 +92,4 @@ ForEach-Object {
   Update-AzTag -ResourceId $_.Id -Tag @{SecurityControl='Ignore'} -Operation Merge | Out-Null
   Set-AzCognitiveServicesAccount -ResourceGroupName $_.ResourceGroupName -Name $_.AccountName -DisableLocalAuth $false | Out-Null
 }
-
 ```
