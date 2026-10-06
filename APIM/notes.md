@@ -810,3 +810,302 @@ After I confirm that the revised API works as expected, I make it current:
 
 Revision 2 now serves requests made through the normal `v2` URL. The revision
 suffix is only needed when I want to address a non-current revision directly.
+
+## Analytics
+
+API Management includes built-in analytics under **Monitoring**. I can use the
+**Timeline**, **Geography**, and **APIs** views to understand request volume,
+response times, failures, and where API traffic originates.
+
+For deeper monitoring and diagnostics, I can connect API Management to Azure
+Application Insights. This gives me a central place to investigate requests,
+backend dependencies, exceptions, and performance across my APIs.
+
+### Connect Application Insights
+
+I first create an Application Insights resource using the same naming pattern
+as the rest of the lab:
+
+```text
+appi-<environment>-<region>-<application-name>-<owner>-<instance>
+```
+
+I then connect the resource to API Management by adding it as an Application
+Insights logger. After creating the connection, I enable diagnostics for the
+**Colors API**:
+
+1. In my API Management instance, I select **APIs**.
+2. I open the **Colors API** and select the **Settings** tab.
+3. Under **Diagnostic logs**, I open the **Application Insights** settings.
+4. I select **Enable**.
+5. For **Destination**, I select the Application Insights logger that I added.
+6. For this lab, I set **Sampling** to `100%` so every request is captured.
+7. I select **Always log errors**, and then save the settings.
+
+> [!IMPORTANT]
+> I use `100%` sampling only to make the telemetry easy to observe during this
+> lab. For a high-volume production API, I choose a lower sampling percentage
+> based on traffic, diagnostic needs, performance, and cost.
+
+### Review the telemetry
+
+Once diagnostics are enabled, Application Insights can receive:
+
+* Request telemetry for incoming gateway requests and responses
+* Dependency telemetry for requests that API Management forwards to a backend
+* Exception telemetry for failed requests
+
+API Management can classify a request as failed when it:
+
+* Ends because the client connection closes
+* Triggers the `on-error` section of an API policy
+* Returns an HTTP status code in the `4xx` or `5xx` range
+
+To generate telemetry, I call the **Colors API** through the
+[Colors website](https://colors-web.azurewebsites.net/). With sampling set to
+`100%`, each request is eligible to be sent to Application Insights. I then
+open Application Insights and review the request, dependency, and failure data.
+
+### Balance visibility and performance
+
+Detailed logging adds processing overhead and increases telemetry volume. The
+impact depends on the request rate, payload size, sampling percentage, and
+whether I log request or response headers and bodies.
+
+Application Insights is designed for monitoring and statistical analysis. I do
+not use it as an audit system or assume that every request must be retained for
+a high-volume API.
+
+Sampling lets me control how much telemetry is collected. A setting of `100%`
+captures all eligible requests, while `0%` disables sampled request telemetry.
+A lower percentage can still reveal common connectivity, dependency, and
+performance problems because these issues usually affect many requests rather
+than a single event.
+
+To reduce overhead while keeping useful operational data, I can:
+
+* Lower the sampling percentage
+* Keep **Always log errors** enabled
+* Avoid logging request and response bodies unless I need them
+* Capture only the headers required for diagnosis
+* Review telemetry volume, ingestion cost, and gateway performance regularly
+
+This gives me enough telemetry to investigate recurring issues without
+collecting more data than I need.
+
+### Export logs to Event Hubs
+
+Azure Event Hubs is a fully managed service for ingesting real-time data at
+scale. I can connect it to API Management to stream gateway logs into a wider
+analytics or monitoring pipeline.
+
+#### Create an Event Hubs namespace
+
+I first create a namespace, which provides a unique container for one or more
+event hubs:
+
+1. In the Azure portal, I create an **Event Hubs Namespace**.
+2. I enter a unique namespace name using this convention:
+
+   ```text
+   evhns-<environment>-<region>-<application-name>-<owner>-<instance>
+   ```
+
+3. For this lab, I select the **Basic** pricing tier.
+4. I review the configuration and create the namespace.
+
+#### Create an event hub
+
+Inside the namespace, I create an event hub to receive the logs from API
+Management:
+
+1. I open the namespace and select **Event Hubs**.
+2. I select **Create** and enter a name using this convention:
+
+   ```text
+   evh-<purpose>-<environment>-<region>-<application-name>-<owner>-<instance>
+   ```
+
+3. I choose the partition count and message-retention period, and then create
+   the event hub.
+
+Partitions allow multiple consumers to process events in parallel. Message
+retention controls how long Event Hubs keeps the data available for consumers.
+
+#### Create access for API Management
+
+API Management needs permission to send events to the event hub:
+
+1. I open the event hub and select **Shared access policies**.
+2. I select **Add** and create a policy with **Send** permission.
+3. I open the new policy and copy its **Connection string-primary key** to a
+   secure location.
+4. I also record the event hub name because I need it when I configure the
+   logger in API Management.
+
+> [!IMPORTANT]
+> The connection string is a secret. I store it securely and avoid adding it
+> to source control or sharing it in screenshots.
+
+## Managing AI cost with API Management
+
+### Understand AI tokens
+
+AI models break text into smaller units called tokens. A token can represent a
+word, part of a word, punctuation, or a character. The model converts each
+token into a numerical identifier so it can process language mathematically
+and identify patterns learned during training.
+
+Usage normally includes both input and output tokens:
+
+* Input tokens represent the prompt and other context sent to the model
+* Output tokens represent the response generated by the model
+* Token counts measure model usage and contribute to the cost of a request
+
+In general, processing more tokens costs more. Pricing can vary by model, and
+input and output tokens may be charged at different rates.
+
+### Plan for AI spending
+
+I can use the Azure pricing calculator to estimate the cost of the Azure
+resources in my solution. Token-based workloads are harder to predict because
+cost depends on user behaviour, prompt size, response length, model choice,
+and traffic volume.
+
+The main challenges I need to consider are:
+
+1. **Token economics:** Prompt and completion tokens can have different prices,
+   and tokenizers provide only an estimate before a request is processed.
+2. **GPU scarcity and price volatility:** Model availability and infrastructure
+   costs can change across regions and providers.
+3. **Allocation and traceability:** I need to know which users, applications,
+   or departments are consuming each model.
+4. **Forecasting uncertainty:** Token-based billing varies with usage patterns
+   and makes fixed forecasts difficult.
+5. **Quality and cost trade-offs:** Larger or more capable models can cost more,
+   while a smaller model may be sufficient for some workloads.
+6. **Cross-functional spending:** AI adoption across multiple departments can
+   distribute spending across many teams and cost centres.
+
+### Use API Management as an AI gateway
+
+An AI gateway sits between clients and AI backends:
+
+```text
+Users, agents, and applications -> API Management -> Models, tools, and agents
+```
+
+This gives me one place to apply governance, security, safety, scaling,
+observability, and cost controls. I can also route requests to Microsoft
+Foundry models or supported third-party model endpoints without exposing those
+backends directly to clients.
+
+### Limit token consumption
+
+API Management token-limit policies allow me to control how many tokens an
+application or user can consume during a defined period. I can use a counter
+key, such as a subscription, user ID, application ID, or IP address, to track
+usage for each caller.
+
+For example, I can apply a per-minute token limit to this request path:
+
+```text
+Application -> API Management token policy -> AI model
+```
+
+When a caller exceeds the configured limit, API Management rejects the request
+with a `429 Too Many Requests` response. Where supported, the policy can use
+the model response to update the counter with the actual token usage rather
+than relying only on an estimate made before the request.
+
+> [!NOTE]
+> An IP address is useful for a simple demonstration, but it may group several
+> users behind the same network address. For production, I prefer a stable
+> authenticated identity, application ID, or subscription as the counter key.
+
+### Monitor token usage
+
+I can emit token metrics and send gateway logs to Azure Monitor so I can query,
+visualize, and export the data. Depending on the model and policy, the metrics
+can include prompt, completion, cached, and reasoning token usage.
+
+My monitoring flow is:
+
+1. I configure the API in API Management to emit the required logs and token
+   metrics.
+2. I open the connected Log Analytics workspace to query the raw data.
+3. I use the results to understand usage by model, application, or caller.
+4. I configure Azure Monitor alerts for important thresholds.
+5. When a threshold is exceeded, I can notify the owning team or start an
+   automated workflow, such as a Logic App.
+
+I can also expose selected usage data through an AI gateway developer portal
+so consumers can understand their token consumption. Together, these controls
+support a FinOps approach in which I can allocate spending, identify unusual
+usage, and balance model quality against cost.
+
+## Security
+
+### JSON Web Tokens (JWT)
+
+JSON Web Tokens are an open standard for representing claims securely between
+two parties. I can use a JWT to pass identity and authorization information to
+an API in a compact, signed format.
+
+For this lab, I create a short-lived test token:
+
+1. I open [Unix Timestamp](https://www.unixtimestamp.com/) and generate an
+   expiration time at least one hour in the future.
+2. I open the JWT debugger at [JWT.io](https://jwt.io/).
+3. In the encoder, I change the signing algorithm to `HS256`.
+4. In the payload, I replace the `exp` claim with the Unix timestamp that I
+   generated.
+5. I generate the token and use it to test the API before it expires.
+
+The `exp` claim stores the token's expiration time as the number of seconds
+since the Unix epoch. API Management should reject the token after that time.
+
+> [!CAUTION]
+> I use browser-based JWT tools only with test data and temporary secrets. I
+> never paste production tokens, signing keys, or sensitive claims into an
+> external website.
+
+### Managed Identities
+
+A managed identity gives an Azure resource its own identity in Microsoft Entra
+ID. I can enable one for resources such as Azure Functions, App Service, and
+API Management.
+
+After enabling the identity, I assign it only the roles it needs. The resource
+can then authenticate to supported Azure services without storing credentials
+in application code or configuration.
+
+## DevOps
+
+For a production API Management environment, I use CI/CD rather than making
+every change manually in the Azure portal. This makes API definitions and
+policies reviewable, repeatable, and easier to promote between environments.
+
+APIOps applies DevOps practices to the API lifecycle. I can store API
+Management artifacts in source control, review changes through pull requests,
+and deploy them through an automated pipeline. The APIOps hands-on lab provides
+a complete walkthrough of this approach.
+
+## Integrate API Management with Azure Service Bus
+
+API Management can send messages directly to an Azure Service Bus queue or
+topic by using the `send-service-bus-message` policy. This lets me expose a
+governed HTTP API in front of an asynchronous messaging workflow.
+
+The request flow is:
+
+```text
+Client -> API Management -> Service Bus queue or topic -> Message consumer
+```
+
+This pattern allows API Management to authenticate, validate, transform, and
+govern the incoming HTTP request before publishing a message. I do not need to
+add an intermediary service whose only purpose is to translate and forward the
+request.
+
+
