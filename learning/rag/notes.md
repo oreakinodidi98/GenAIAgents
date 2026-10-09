@@ -84,3 +84,4 @@ Then set up and run the demo:
 5. Save the chunks and their vectors in the Azure AI Search index.
 6. Run the notebook to index the documents, retrieve relevant context, and
    generate a grounded response.
+
