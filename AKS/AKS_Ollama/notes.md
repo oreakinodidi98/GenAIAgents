@@ -133,15 +133,156 @@ Apply the manifests from the `AKS_Ollama` directory:
 ```powershell
 kubectl apply -f .\k8s
 ```
-there is no model running in the ollamam container so run 
 
-kubectl exec ollama-0 -n ollama -it -- ollama run phi3.5
-This install LLM model likw phi3.5 or llama3.1 into ollama server
-to exit use ctrl d
+#### Download a model
 
-kubectl exec ollama-0 -n ollama -it -- ollama ps
+The Ollama container starts without a model. Download `phi3.5` into the
+persistent Ollama volume:
 
-to get the public IP of the client service
-kubectl get svc -n ollama
+```powershell
+kubectl exec -n ollama ollama-0 -- ollama pull phi3.5
+```
 
-use external IP
+You can replace `phi3.5` with another supported model, such as `llama3.1`.
+Confirm that the model is available:
+
+```powershell
+kubectl exec -n ollama ollama-0 -- ollama list
+```
+
+To test the model in an interactive terminal session, run:
+
+```powershell
+kubectl exec -n ollama -it ollama-0 -- ollama run phi3.5
+```
+
+Press `Ctrl+D` to leave the session. The downloaded model remains on the
+persistent volume after the pod or cluster restarts.
+
+#### Open the web interface
+
+Check the Open WebUI service and note its `EXTERNAL-IP` value:
+
+```powershell
+kubectl get service -n ollama open-webui-service
+```
+
+Open `http://<EXTERNAL-IP>` in a browser. The service accepts traffic on port
+`80` and forwards it to Open WebUI on port `8080`.
+
+> [!IMPORTANT]
+> Restrict public access with an NSG or firewall rule. Allow only trusted
+> source IP addresses, preferably the current client public IP with a `/32`
+> prefix, instead of exposing Open WebUI to the entire internet.
+
+### Troubleshoot the AKS deployment
+
+#### The browser connection times out
+
+Confirm that the AKS cluster and node pool are running:
+
+```powershell
+$resourceGroup = "<resource-group>"
+$clusterName = "<cluster-name>"
+
+az aks show `
+    --resource-group $resourceGroup `
+    --name $clusterName `
+    --query "{powerState:powerState.code,provisioningState:provisioningState}"
+
+az aks nodepool list `
+    --resource-group $resourceGroup `
+    --cluster-name $clusterName `
+    --query "[].{name:name, power:powerState.code, state:provisioningState}" `
+    --output table
+```
+
+If the cluster is stopped, start it and wait for provisioning to finish:
+
+```powershell
+az aks start --resource-group $resourceGroup --name $clusterName
+az aks wait `
+    --resource-group $resourceGroup `
+    --name $clusterName `
+    --updated `
+    --interval 30 `
+    --timeout 1800
+```
+
+Refresh the Kubernetes credentials, then check the nodes:
+
+```powershell
+az aks get-credentials `
+    --resource-group $resourceGroup `
+    --name $clusterName `
+    --overwrite-existing
+
+kubectl get nodes
+```
+
+All nodes should report `Ready` before you test Open WebUI again.
+
+#### A pod is not running
+
+Check the pod status and recent cluster events:
+
+```powershell
+kubectl get pods -n ollama -o wide
+kubectl get events -n ollama --sort-by=.lastTimestamp
+```
+
+Use the pod name from the first command to inspect scheduling, image, or volume
+errors:
+
+```powershell
+kubectl describe pod -n ollama <pod-name>
+kubectl logs -n ollama <pod-name>
+```
+
+If a pod is temporarily in `ContainerCreating` after the cluster starts, wait
+for its persistent volume to attach and its image to download.
+
+#### The external IP is pending or unavailable
+
+Inspect the service and verify that it has a healthy backend endpoint:
+
+```powershell
+kubectl get service -n ollama open-webui-service -o wide
+kubectl get endpointslice -n ollama `
+    -l kubernetes.io/service-name=open-webui-service
+```
+
+An `EXTERNAL-IP` value of `<pending>` means the Azure Load Balancer is still
+being created. If an IP exists but no endpoint is listed, confirm that the
+Open WebUI pod is `Running` and `Ready`.
+
+#### Open WebUI cannot find a model
+
+Confirm that Ollama is running and that the model was downloaded:
+
+```powershell
+kubectl get pod -n ollama ollama-0
+kubectl exec -n ollama ollama-0 -- ollama list
+kubectl logs -n ollama ollama-0
+```
+
+If the model is missing, run the `ollama pull` command again. If Open WebUI
+still cannot connect, verify that the Ollama service has an endpoint:
+
+```powershell
+kubectl get service -n ollama ollama-service
+kubectl get endpointslice -n ollama `
+    -l kubernetes.io/service-name=ollama-service
+```
+
+#### Persistent storage does not attach
+
+Check that both claims are bound:
+
+```powershell
+kubectl get persistentvolumeclaim -n ollama
+```
+
+The `ollama-volume-ollama-0` and `open-webui-pvc` claims should report
+`Bound`. Use `kubectl describe persistentvolumeclaim -n ollama <claim-name>`
+to inspect a claim that remains `Pending`.
