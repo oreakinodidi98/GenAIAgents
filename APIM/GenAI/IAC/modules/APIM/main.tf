@@ -1,0 +1,112 @@
+resource "azurerm_api_management" "apim" {
+  name                          = var.apim_name
+  location                      = var.location
+  resource_group_name           = var.resourcegroup
+  publisher_name                = var.apim_publisher_name
+  publisher_email               = var.apim_publisher_email
+  sku_name                      = var.apim_sku_name # "Consumption_0" # "Developer_1"
+  virtual_network_type          = "None"            # None, External, Internal
+  public_network_access_enabled = true              # false applies only when using private endpoint as the exclusive access method
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_role_assignment" "Cognitive-Services-OpenAI-User" {
+  scope                = var.foundry_id
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = azurerm_api_management.apim.identity.0.principal_id
+}
+
+resource "azurerm_api_management_api" "apim-api-openai" {
+  name                  = var.apim_api_name
+  resource_group_name   = azurerm_api_management.apim.resource_group_name
+  api_management_name   = azurerm_api_management.apim.name
+  revision              = "1"
+  description           = "Azure OpenAI APIs for completions and search"
+  display_name          = "OpenAI"
+  path                  = "openai"
+  protocols             = ["https"]
+  service_url           = "${var.foundry_management_endpoint}openai"
+  subscription_required = true
+  api_type              = "http"
+
+  import {
+    content_format = "openapi-link"
+    content_value  = "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json"
+  }
+
+  subscription_key_parameter_names {
+    header = "api-key"
+    query  = "api-key"
+  }
+}
+resource "azurerm_api_management_subscription" "apim-api-subscription-openai" {
+  display_name        = var.apim_sub_name
+  api_management_name = azurerm_api_management.apim.name
+  resource_group_name = azurerm_api_management.apim.resource_group_name
+  api_id              = replace(azurerm_api_management_api.apim-api-openai.id, "/;rev=.*/", "")
+  allow_tracing       = true
+  state               = "active"
+}
+resource "azurerm_api_management_api_policy" "apim-openai-policy-openai" {
+  api_name            = azurerm_api_management_api.apim-api-openai.name
+  api_management_name = azurerm_api_management_api.apim-api-openai.api_management_name
+  resource_group_name = azurerm_api_management_api.apim-api-openai.resource_group_name
+
+  xml_content = replace(
+  file("${path.root}/policy.xml"),
+  "{backend-id}",
+  azapi_resource.apim-backend-pool-openai.name
+)
+}
+
+resource "azurerm_api_management_backend" "apim-backend-openai" {
+  for_each = var.foundry_config
+
+  name                = each.value.name
+  resource_group_name = azurerm_api_management.apim.resource_group_name
+  api_management_name = azurerm_api_management.apim.name
+  protocol            = "http"
+  url                 = "${var.foundry_management_endpoint}openai"
+
+  circuit_breaker_rule {
+    name                       = "openAIBreakerRule"
+    trip_duration              = "PT1M"
+    accept_retry_after_enabled = true
+
+    failure_condition {
+      count             = 1
+      interval_duration = "PT5M"
+      error_reasons     = ["Server errors"]
+      status_code_range {
+        min = 429
+        max = 429
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "apim-backend-pool-openai" {
+  type                      = "Microsoft.ApiManagement/service/backends@2023-09-01-preview"
+  name                      = "apim-backend-pool"
+  parent_id                 = azurerm_api_management.apim.id
+  schema_validation_enabled = false
+
+  body = {
+    properties = {
+      type = "Pool"
+      pool = {
+        services = [
+          for k, v in var.foundry_config :
+          {
+            id       = azurerm_api_management_backend.apim-backend-openai[k].id
+            priority = v.priority
+            weight   = v.weight
+          }
+        ]
+      }
+    }
+  }
+}
