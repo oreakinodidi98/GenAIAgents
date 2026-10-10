@@ -1,6 +1,6 @@
 # APIM Networking
 
-## Private Connectivity
+## Private Connectivity with foundry
 
 I can establish private connectivity for Azure AI services by using Azure API Management, Azure Front Door Premium, virtual networks, private endpoints, and Azure Private Link. In this design, the AI resources and APIM gateway are not directly exposed to clients. Azure Front Door is the only public entry point and provides global routing and Web Application Firewall (WAF) protection before forwarding traffic to APIM.
 
@@ -23,13 +23,15 @@ flowchart LR
 
 ### Keep the AI Services Private
 
-I deploy the Azure AI services with public network access disabled. Each service receives a private endpoint with a private IP address from a dedicated subnet in my virtual network, allowing traffic to reach the service over the Microsoft backbone instead of the public internet. I also configure private DNS so the normal Azure AI service hostnames resolve to the correct private IP addresses from within the virtual network.
+I deploy the Azure AI services with public network access disabled, in multiple regions. Each service receives a private endpoint with a private IP address from a dedicated subnet in my virtual network, allowing traffic to reach the service over the Microsoft backbone instead of the public internet. I also configure private DNS so the normal Azure AI service hostnames resolve to the correct private IP addresses from within the virtual network.
 
 ### Connect API Management to the AI Services
 
-I configure APIM with supported outbound virtual network connectivity so it can resolve and reach the private endpoints. Depending on the APIM tier, this can use virtual network injection or outbound virtual network integration. APIM should use its own delegated or dedicated subnet where required, while the AI service private endpoints remain in a separate subnet in the same virtual network or in a peered virtual network.
+I configure APIM with supported outbound virtual network connectivity so it can resolve and reach the private endpoints. APIM should use its own delegated or dedicated subnet where required, while the AI service private endpoints remain in a separate subnet in the same virtual network or in a peered virtual network.
 
-Because APIM has private network connectivity to the AI service endpoints, it can route requests to those backends without exposing them publicly. I can use APIM backend pools and policies to assign priorities and weights to the endpoints for load balancing, failover, or traffic distribution.
+Because APIM has private network connectivity to the AI service endpoints (because they APIM and AI service Private endpoints are in the same VNet), it can route requests to those backends without exposing them publicly. I can use APIM backend pools and policies to assign priorities and weights to the endpoints for load balancing, failover, or traffic distribution.
+
+Can also access APIM withing the same VNET. By creating another subnet for a VM and accessing the APIM through a second private enpoint in the same subnet. Allowing the VM to connect using the private endpoint.
 
 ### Connect Azure Front Door to API Management
 
@@ -49,3 +51,9 @@ Client -> Azure Front Door Premium + WAF -> Private Link -> API Management -> Pr
 ```
 
 Azure Front Door acts as the public endpoint for the client application and provides global reach and request inspection through WAF. APIM remains the policy and routing layer, while the AI services remain private and can only be reached through their private endpoints.
+
+## Demo
+
+Deploy RG
+deploy foundry in 3 different regions
+deploy model
