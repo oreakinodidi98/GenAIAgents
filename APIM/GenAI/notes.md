@@ -172,6 +172,102 @@ I create an APIM backend for each Foundry resource and add those backends to a b
 
 For this demo, all three Foundry backends have the same priority but different weights. This keeps them in the same active group while allowing me to direct more traffic to the backends with greater available capacity.
 
+## Create an APIM backend for Azure AI Foundry models
+
+1. In **API Management**, go to **Backends** → **+ Add**.
+
+2. Use these backend values:
+
+| Field | Value |
+|---|---|
+| **Name** | Something clear, e.g. `foundry-models-backend` |
+| **Description** | Optional, e.g. `Azure AI Foundry model endpoint` |
+| **Backend hosting type** | `Custom URL` |
+| **Runtime URL** | Your Foundry root endpoint, e.g. `https://apilaboa01.services.ai.azure.com` |
+
+Do **not** include paths like `/models`, `/openai/v1`, `/chat/completions`, `/embeddings`, or deployment names in the backend Runtime URL.
+
+3. Under **Authorization credentials**, enable **Managed identity**.
+
+4. Use:
+
+| Field | Value |
+|---|---|
+| **Client identity** | `System assigned identity` |
+| **Resource ID** | `https://cognitiveservices.azure.com` |
+
+5. Make sure the APIM system-assigned identity has the **Cognitive Services User** role on the Azure AI Foundry / Azure AI Services resource.
+
+6. In your API policy, route traffic to this backend:
+
+```xml
+<set-backend-service backend-id="foundry-models-backend" />
+```
+
+In simple terms: the **backend** is the real Foundry service APIM forwards requests to. The **Runtime URL** is the base address of Foundry, while each APIM operation adds the specific path such as chat completions or embeddings.
+
 ### Deploy the Architecture with IaC
 
 The IaC for this demo is intended to deploy one APIM instance and three Microsoft Foundry resources across Sweden Central, UK South, and France Central. Each Foundry resource hosts an instance of the same LLM model and is registered as an APIM backend. APIM then exposes a single gateway endpoint to the application and handles weighted traffic distribution, retries, and failover behind that endpoint.
+
+## Demo: Semantic Caching
+
+In this demo, I use APIM semantic caching to store and reuse responses from an LLM. The application continues to call one APIM endpoint, while APIM checks a Redis-compatible cache before sending the request to the chat model.
+
+### Why Use Semantic Caching
+
+LLM requests can be expensive because each call consumes tokens, and responses can take several seconds while the user waits. Users may also ask the same question in different ways and receive almost the same answer. Reusing a suitable cached response can reduce model calls and token costs, lower response latency, improve the user experience, and reduce pressure on the backend model.
+
+Unlike a standard cache that normally requires an exact key match, a semantic cache can match prompts that have similar meanings. An embedding model converts the incoming prompt into a vector, and APIM uses vector search to compare it with prompt vectors already stored in Redis.
+
+### Semantic Cache Request Flow
+
+```mermaid
+flowchart LR
+    A[Application] -->|Prompt and APIM subscription key| B[API Management]
+    B -->|Generate prompt vector| C[Embedding model]
+    C -->|Embedding vector| B
+    B -->|Vector similarity lookup| D[(Redis-compatible cache)]
+    D -->|Cache hit| B
+    B -->|Cached response| A
+    D -->|Cache miss| B
+    B -->|Prompt| E[Chat model]
+    E -->|LLM response| B
+    B -->|Store prompt vector, response, and metadata| D
+    B -->|LLM response| A
+```
+
+For each eligible request, APIM creates an embedding and searches the external Redis cache. If it finds a sufficiently similar entry, APIM returns the cached response without calling the chat model. If there is no acceptable match, APIM sends the request to the chat model and stores the resulting response so it can be reused later.
+
+### Configure the Cache Behavior
+
+APIM provides the `llm-semantic-cache-lookup` policy for checking the cache during inbound processing and the `llm-semantic-cache-store` policy for storing eligible responses during outbound processing. Both policies are required for the complete lookup-and-store flow.
+
+The cache lookup considers the conversation content, which can include the user prompt and system message depending on the policy configuration. The stored entry contains the data APIM needs to associate the prompt embedding with the LLM response and related metadata.
+
+The `score-threshold` setting controls how similar an incoming prompt must be to a cached prompt. APIM accepts values from `0.0` to `1.0`, and a lower value requires a closer semantic match. I should begin with a strict threshold and loosen it only after confirming that the reused responses remain accurate.
+
+The `duration` setting on the store policy defines how long a cached response remains available and is expressed in seconds. Stable answers can use a longer duration, while frequently changing or time-sensitive information should use a shorter duration. Because semantic matches are not exact matches, I should avoid reusing responses across users or tenants without partitioning the cache, for example by using `<vary-by>` with the APIM subscription or another appropriate boundary.
+
+### Resources Needed
+
+#### API Management
+
+* Enable a managed identity and connect APIM to the Microsoft Foundry model endpoints.
+* Create an APIM subscription key for the application calling the gateway.
+* Create a backend for the embeddings deployment and specify its full embeddings URL.
+* Configure the Redis connection in the APIM **External cache** settings. If Redis runs in Azure Container Apps, APIM connects to the reachable Redis endpoint; the connection string is not configured on the container app itself.
+* Add the semantic cache lookup policy to inbound processing and the semantic cache store policy to outbound processing.
+* Configure managed identity authentication so APIM can call both the chat model and embedding model without storing their API keys.
+
+#### Redis-Compatible Cache
+
+APIM requires an external Redis-compatible cache with RediSearch vector-search support. Azure Managed Redis can provide this capability, but I cannot create the enterprise Redis option in my current MCAPS environment. As an alternative, I can deploy a Redis Stack container to AKS or Azure Container Apps. For Azure Container Apps, I need to create a Container Apps environment, deploy the Redis Stack image, and configure the required virtual network and subnet so APIM can reach the cache securely.
+
+#### Microsoft Foundry
+
+I need both a chat model deployment for generating responses and an embedding model deployment for converting prompts into vectors. The same embedding model and vector dimensions must be used consistently when storing and looking up cache entries.
+
+### Test Semantic Caching
+
+To test the setup, I open the Chat Completions operation in the APIM test console and provide the subscription key, deployment details, API version, and request body as configured earlier. I first send a prompt to create a cache entry, then send the same prompt or a semantically similar prompt. APIM tracing should show whether the second request produced a cache hit or continued to the LLM backend. I can then adjust the score threshold and cache duration based on the results.
