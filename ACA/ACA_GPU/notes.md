@@ -61,3 +61,4 @@ consumption group profile
 profile of D4 and GPU for contianer apps
 uses az comand line to provision th resources and workload profile doesnt work in terraform at the moment
 deploy ACA that will run gemma 4 -> expose on port 1800 -> using VLLM continer, specify resource limits, configured http scale rule based of KEDA
+can consume models through code
