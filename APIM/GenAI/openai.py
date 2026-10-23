@@ -21,7 +21,7 @@ openai_model_name = os.getenv("OPENAI_MODEL_NAME")
 openai_deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
 
 client = AzureOpenAI(
-    azure_endpoint=apim_resource_gateway_url,
+    azure_endpoint=apim_resource_gateway_url, # type: ignore
     api_key=apim_subscription_key,
     api_version=openai_api_version
 )
@@ -31,6 +31,6 @@ messages={"messages":[
     {"role": "user", "content": "Can you tell me the time, please?"}
 ]}
 
-response = client.chat.completions.create(model=openai_model_name, messages=messages)
+response = client.chat.completions.create(model=openai_model_name, messages=messages) # type: ignore
 
 print("💬 ", response.choices[0].message.content)
