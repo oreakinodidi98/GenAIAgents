@@ -14,6 +14,11 @@
 - Build a ReAct Agent
 REACT= Reason + ACT -> Thought, Action , Observation and final answer
 
+Need to create virtul enviroment . Use code
+1. Set up Virtual enviroment ``python -m venv agent_env`` then ``agent_env\Scripts\activate``
+2. Install needed packages `` pip install -r requirements.txt ``
+
+
 ## Module 2: Advanced agents
 
 - MCP : Open protocol that standardises how LLM applications work with your tools and data source
