@@ -3,6 +3,16 @@
 ## Module 1: create agent
 
 - Agents : piece of software that can percieve its enviroment and react. So reasonts and takes action
+- Framework: how you build the agents
+- Provider: where the model actually runs
+
+### Langchain Fundaments
+
+- Terraform to deploy model
+- Get endpoint & KEy
+- Configure Client
+- Build a ReAct Agent
+REACT= Reason + ACT -> Thought, Action , Observation and final answer
 
 ## Module 2: Advanced agents
 
