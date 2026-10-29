@@ -79,7 +79,6 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
-terraform-oidc-config/.terraform.lock.hcl
 # Include override files you do wish to add to version control using negated pattern
 # !example_override.tf
 
@@ -89,7 +88,6 @@ terraform-oidc-config/.terraform.lock.hcl
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
-terraform-oidc-config/.terraform.lock.hcl
 # Compiled class file
 *.class
 
@@ -129,7 +127,7 @@ hs_err_pid*
 *.dylib
 # Ignore Kubernetes configuration files
 *.kubeconfig
-*.config
+kaito-aks-cluster*.config
 *.crt
 # .gitignore
 azurek8s.config
@@ -250,11 +248,7 @@ env.bak/
 venv.bak/
 .env
 
-# Pyenv, Pipenv, Poetry, PDM configurations
-.python-version
-Pipfile.lock
-poetry.lock
-pdm.lock
+# Local PDM configuration
 .pdm.toml
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
@@ -290,19 +284,17 @@ cython_debug/
 
 # Infrastructure and Deployment
 .azure
-kustomization.yaml
 kind
 kustomize
-.terraform*
+.terraform/
 *.tfstate
 *.tfstate.backup
-*_env
+*_env/
+*_venv/
 *.data
 .runs/
 **/node_modules/
-package-lock.json
 src/api/api/agents/writer/.promptflow/
-flow.flex.yaml
 
 # Node.js dependencies
 node_modules/
@@ -311,17 +303,12 @@ node_modules/
 
 # React build output
 src/api/static/react/
-.vscode/launch.json
-.env.sample
 .env
-*.env.sample
 
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
 
-#ignote terraform lock file 
-.terraform.lock.hcl
 # ignote terraform tfplan files
 *.tfplan
 #ignore kubeconfig files
@@ -341,4 +328,13 @@ terraform.rc
 .infracost/*
 **/.infracost/*
 **/k8s-Copy/*
-lca-lc-foundations-main
+
+# Local environment files and backups; templates must contain placeholders only.
+.env*
+*.env
+*.env.*
+*.env *
+!.env.example
+!.env.sample
+!*.env.example
+!*.env.sample
