@@ -67,3 +67,16 @@ shared
 no locall install
 can layer interceptors for login and retries also can include custom tools
 can host mcp server in azure app service
+using container image to host MCP server for open web search
+
+can add error handling for MCP servers, retry or fall back interceptors
+
+## Module 5: Dynamic session 
+
+Giving agent its own code interpreter
+usin ACA Dynamic Sessions
+gives sandbox enviroment
+ability to upload and download files
+Bash shell
+Run python code safely
+sandbox enviroment

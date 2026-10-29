@@ -8,13 +8,48 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 import asyncio
 # mcp
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 import httpx
 from markdownify import markdownify
 
+from IPython.display import Markdown, display
 
 
 from dotenv import load_dotenv
 load_dotenv()
+
+# Interceptors for handling tool call retries and fallbacks
+async def retry_interceptor(
+    request: MCPToolCallRequest,
+    handler,
+    max_retries: int = 3,
+    delay: float = 1.0,
+):
+    """Retry failed tool calls with exponential backoff."""
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return await handler(request)
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                wait_time = delay * (2 ** attempt)  # Exponential backoff
+                print(f"Tool {request.name} failed (attempt {attempt + 1}), retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+    raise last_error
+
+# Interceptor for handling tool call fallbacks
+async def fallback_interceptor(
+    request: MCPToolCallRequest,
+    handler,
+):
+    """Return a fallback value if tool execution fails."""
+    try:
+        return await handler(request)
+    except TimeoutError:
+        return f"Tool {request.name} timed out. Please try again later."
+    except ConnectionError:
+        return f"Could not connect to {request.name} service. Using cached data."
 
 # Connect to the Microsoft Learn MCP server, public endpoint so no authentication is required
 mcp_client = MultiServerMCPClient(
@@ -23,7 +58,8 @@ mcp_client = MultiServerMCPClient(
             "url": f"https://{app_service_mcp_server_open_web_search_fqdn}/mcp",
             "transport": "http",
         }
-    }
+    },
+    tool_interceptors=[retry_interceptor, fallback_interceptor]
 )
 
 # Tool to fetch and convert webpage content to markdown
@@ -40,6 +76,7 @@ def fetch_webpage_content(url: str, timeout: float = 10.0) -> str:
         return markdownify(response.text)
     except Exception as e:
         return f"Error fetching {url}: {e!s}"
+
     
 async def main():
     # Test environment variables
@@ -81,6 +118,8 @@ async def main():
         middleware=[],
         checkpointer=None,
     )
+    # variable to store the last message from the agent
+    last_message = None
 
     # ask agent question 
     async for step in learn_agent.astream(
@@ -95,6 +134,19 @@ async def main():
         stream_mode="values"
     ):
         step["messages"][-1].pretty_print()
+        last_message = step["messages"][-1]
+
+    # show the response content as markdown
+    content = getattr(last_message, "content", "")
+    if isinstance(content, list):
+        markdown_text = "\n".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in content
+        )
+    else:
+        markdown_text = str(content)
+
+    display(Markdown(markdown_text))
 
 if __name__ == "__main__":
     asyncio.run(main())
