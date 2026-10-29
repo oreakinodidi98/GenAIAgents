@@ -33,20 +33,10 @@ function Require-AzCli {
 function Invoke-AzJson {
     param([string[]]$Arguments)
 
-    $errorFile = [System.IO.Path]::GetTempFileName()
-    try {
-        $output = & az @Arguments 2>$errorFile
-        $exitCode = $LASTEXITCODE
-        $errorOutput = Get-Content -Path $errorFile -Raw -ErrorAction SilentlyContinue
-        $errorText = $(if ($null -eq $errorOutput) { "" } else { $errorOutput.Trim() })
-    } finally {
-        Remove-Item -Path $errorFile -Force -ErrorAction SilentlyContinue
-    }
-
-    if ($exitCode -ne 0) {
+    $output = & az @Arguments 2>$null
+    if ($LASTEXITCODE -ne 0) {
         $joined = ($Arguments -join " ")
-        $details = $(if ($errorText) { "`n$errorText" } else { "" })
-        throw "Azure CLI command failed: az $joined$details"
+        throw "Azure CLI command failed: az $joined"
     }
 
     if ([string]::IsNullOrWhiteSpace($output)) {
@@ -114,18 +104,6 @@ if ($AccountName -and $ResourceGroupName) {
     }
 
     $target = $rows[$selectedIndex]
-}
-
-$localAuthDisabled = Invoke-AzJson -Arguments @(
-    "cognitiveservices", "account", "show",
-    "--resource-group", $target.resourceGroup,
-    "--name", $target.name,
-    "--query", "properties.disableLocalAuth",
-    "-o", "json"
-)
-
-if ($localAuthDisabled -eq $true) {
-    throw "Account '$($target.name)' has local authentication disabled, so Azure will not return API keys. Use Microsoft Entra ID authentication, or enable local authentication only if your security policy permits it."
 }
 
 $keys = Invoke-AzJson -Arguments @(
