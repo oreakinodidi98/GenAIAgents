@@ -1,4 +1,47 @@
-# Agents
+---
+title: Agents
+description: AI agent experiments, tutorials, and development setup
+---
+
+## Set up on a new laptop
+
+Commit source code, dependency manifests, lockfiles, Python version files, and
+configuration templates containing placeholders. Virtual environments, installed
+dependencies, caches, credentials, and Terraform state stay out of Git.
+
+1. Review `git status --short --untracked-files=all` and stage only intended files.
+   Review notebook outputs and environment templates for secrets before publishing.
+2. Commit and publish the reviewed changes, then clone on your new laptop:
+
+   ```powershell
+   git clone https://github.com/oreakinodidi98/GenAIAgents.git
+   Set-Location .\GenAIAgents
+   ```
+
+3. Install Git, the Python versions required by the projects, and any project-specific
+   tools such as uv, Node.js, or Terraform. Follow each project's setup instructions.
+4. Recreate dependencies inside the project you want to run. For a project with
+   `pyproject.toml` and `uv.lock`, run `uv sync --locked`. For a project with
+   `requirements.txt`, use a new virtual environment:
+
+   ```powershell
+   python -m venv agent_env
+   .\agent_env\Scripts\python.exe -m pip install -r requirements.txt
+   ```
+
+   For Node.js projects, use the package manager matching the committed lockfile,
+   for example `npm ci` or `pnpm install --frozen-lockfile`. Run `terraform init`
+   inside each Terraform root module to restore providers from its lockfile.
+5. Copy a project's `.env.example` or `.env.sample` to `.env`, if available, then
+   supply your credentials locally. The [MCP configuration template](./Components/MCPs/.env.example)
+   is one example. Sign in again to development services on the new laptop.
+
+> [!WARNING]
+> A clone does not include ignored files. Before retiring your old laptop, transfer
+> required secrets, local databases, data, and local-only Terraform state through
+> an encrypted channel or secure backup. Never commit them to make the transfer.
+> Removing a file from Git tracking does not erase earlier commits. Rotate any
+> credentials that were previously published.
 
 ## AI Agent
 
