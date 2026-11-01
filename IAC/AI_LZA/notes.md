@@ -1,31 +1,31 @@
 ---
 title: AI Landing Zone
-description: Notes on designing an enterprise-scale foundation for AI applications and agents in Azure
+description: Notes on designing and importance of an enterprise-scale foundation for AI applications and agents in Azure
 ---
 
-## AI landing zone
+## Intro
 
-Customers use an AI landing zone as an enterprise-scale, production-ready foundation for deploying secure and resilient AI applications and agents in Azure. The reference architecture can be implemented through the Azure portal, Bicep, or Terraform.
+Over the past few months ive been working more on AI workloads and have seen an increase in customers focusing on governece for Agents and having a way to controll this on an enterprise level. So i decided to take some notes, write down my findings and essentially have an open discussion with the auidence , highlighting somethings i have seen work and not work . By no means is this a definitive guide but rather a glimpse into designing and importance of an enterprise-scale foundation for AI applications and agents
 
-It supports different AI use cases, scenarios, and workload patterns. Customers can deploy it as part of a broader platform landing zone or use it independently.
+## Importance of an AI landing zone
+
+Many customers use an AI landing zone as an enterprise-scale, production ready foundation for deploying secure and resilient AI applications and agents in Azure. The reference architecture can be implemented through the Azure portal, Bicep, or Terraform. It supports different AI use cases, scenarios, and workload patterns. Customers can deploy it as part of a broader platform landing zone or use it independently.
 
 ## Reference architecture
 
+Fundamentally the architecture for this boils down to 2 key services an AI gateway and foundry.
+
 ### AI gateway with API Management
 
-Customers can deploy Azure API Management as a centralized AI gateway and model hub. It governs access to both production and non-production models while providing a consistent layer for security, routing, monitoring, and policy enforcement.
-
-The gateway can integrate with Microsoft Foundry capabilities such as the model catalog, agents, and evaluations.
+Customers can deploy Azure API Management as a centralized AI gateway and model hub. It governs access to both production and non-production models while providing a consistent layer for security, routing, monitoring, and policy enforcement. The gateway can integrate with Microsoft Foundry capabilities such as the model catalog, agents, and evaluations.
 
 ### Microsoft Foundry
 
-Customers can then deploy Microsoft Foundry as a spoke for building and running agents. Creating multiple Foundry deployments for different business units or use cases, with each deployment consuming models through the shared AI gateway.
-
-If they do not need a centralized model hub, customers can also deploy Foundry independently. Configurable deployment templates help create consistent environments faster while still allowing each workload to meet its own requirements.
+Customers can then deploy Microsoft Foundry as a spoke for building and running agents. Creating multiple Foundry deployments for different business units or use cases, with each deployment consuming models through the shared AI gateway. If they do not need a centralized model hub, customers can also deploy Foundry independently. Configurable deployment templates help create consistent environments faster while still allowing each workload to meet its own requirements.
 
 ## Design checklist
 
-When designing an AI landing zone, consider the complete platform rather than only the AI models. A recommended checklist includes:
+When designing an AI landing zone, it is best practise to consider the complete platform rather than only the AI models. A recommended checklist includes:
 
 * Security
 * Identity
@@ -41,9 +41,9 @@ When designing an AI landing zone, consider the complete platform rather than on
 * Operational excellence
 * Performance efficiency
 
-The Azure Well-Architected Framework groups the architectural quality of the solution into five pillars: Reliability, Security, Cost Optimization, Operational Excellence, and Performance Efficiency. The other checklist items cover the wider platform capabilities needed to operate AI workloads at scale.
+The Azure Well-Architected Framework groups the architectural quality of the solution into five pillars: Reliability, Security, Cost Optimization, Operational Excellence, and Performance Efficiency. The other checklist items cover the wider platform capabilities needed to operate AI workloads at scale. Togethere this create are eneterprise ready architecture.
 
-## AI workload lifecycle
+### AI workload lifecycle
 
 It is also beneficial to think about the AI workload as a flow from data to the final client:
 
@@ -58,11 +58,9 @@ It is also beneficial to think about the AI workload as a flow from data to the 
 
 ## Implement AI across a large organization
 
-The goal is not only to introduce AI, but to create measurable value for
-people and business processes. The solution must remain secure, operate
-efficiently, use the organization's existing skills and data, and stay within budget.
+The goal is not only to introduce AI, but to create measurable value for people and business processes. The solution must remain secure, operate efficiently, use the organization's existing skills and data, and stay within budget.
 
-Successful adoption requires more than infrastructure. I also consider:
+Successful adoption requires more than infrastructure. I also urge customers to consider:
 
 * Data ownership, quality, privacy, and governance
 * Shared infrastructure and reusable platform services
@@ -78,9 +76,7 @@ For a customer with both an on-premises environment and Azure, I would start wit
 
 ### Architecture overview
 
-The layout below shows the shared connectivity hub and the separate Prod and
-Non-Prod spokes. Solid arrows show request paths or service access. Dotted
-arrows show network peering, DNS support, or administration, not model requests.
+The layout below shows the shared connectivity hub and the separate Prod and Non-Prod spokes. Solid arrows show request paths or service access. Dotted arrows show network peering, DNS support, or administration, not model requests.
 
 <!-- mermaid-checked: no \n, no em-dash/en-dash, no {} in labels, subgraphs are id["label"], arrows are -->|"label"|, all subgraphs closed by end, ids unique -->
 ```mermaid
@@ -144,15 +140,12 @@ flowchart TD
     NonProdPE -->|"Private Link"| NonProdFoundry
 ```
 
-Foundry resources sit outside the VNet; their private endpoints sit inside it.
-The Non-Prod application resources are grouped to keep the diagram readable.
-APIM networking depends on the selected tier. VNet peering alone does not force
-traffic through Azure Firewall, so the firewall path shown needs explicit routing.
-Bastion is for VM administration and is not part of the inference request path.
+Foundry resources sit inside the VNet; their private endpoints sit inside it.
+The Non-Prod application resources are grouped to keep the diagram readable. APIM networking depends on the selected tier. VNet peering alone does not force traffic through Azure Firewall, so the firewall path shown needs explicit routing. Bastion is for VM administration and is not part of the inference request path.
 
 ### Separate Prod and Non-Prod
 
-Itnis best practise to create separate subscriptions for Prod and Non-Prod, with your own Foundry resources and workload boundaries. This gives better isolation, a smaller blast radius, and clearer governance.
+It is best practise to create separate subscriptions for Prod and Non-Prod, with your own Foundry resources and workload boundaries. This gives better isolation, a smaller blast radius, and clearer governance.
 
 It also helps reduce noisy-neighbour risk, where development or test traffic affects production (PTUs). Customers would still need to check model capacity and quota boundaries, because separate subscriptions alone do not guarantee dedicated capacity.
 
@@ -166,8 +159,7 @@ For connectivity, customers can create a resource group containing the hub VNet 
 * Private DNS zones for resolving private endpoint names
 * Azure DNS Private Resolver for DNS resolution between on-premises and Azure
 
-The gateway, firewall, and Bastion each need their own dedicated subnet.
-Private Resolver endpoints also use dedicated subnets. Private DNS zones are linked to the VNets; they are not deployed inside a subnet.
+The gateway, firewall, and Bastion each need their own dedicated subnet. Private Resolver endpoints also use dedicated subnets. Private DNS zones are linked to the VNets; they are not deployed inside a subnet.
 
 The network connection carries the traffic, while DNS forwarding allows on-premises applications to resolve the Azure private endpoint names.
 
