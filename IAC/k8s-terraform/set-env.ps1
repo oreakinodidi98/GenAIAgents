@@ -1,8 +1,8 @@
 # set-env.ps1
 $env:ARM_SUBSCRIPTION_ID = "cb5b077c-3ef5-4b2e-83e5-490cc5ca0e19"
-$env:ARM_TENANT_ID = "16b3c013-d300-468d-ac64-7eda0820b6d3"
-$env:ARM_CLIENT_ID = "804735be-6477-484d-9d8e-e9bf654b2b38"
-$env:ARM_CLIENT_SECRET = "REDACTED_SECRET"
+$env:ARM_TENANT_ID = ""
+$env:ARM_CLIENT_ID = ""
+$env:ARM_CLIENT_SECRET = ""
 
 # VM Admin Password (must have: lowercase, uppercase, digit, special char)
 $env:TF_VAR_admin_password = "REDACTED_SECRET"
