@@ -293,7 +293,7 @@ flowchart LR
     FlowMonitor -.->|"Threshold alerts"| FlowAutomation
     FlowAutomation -.->|"Configured policy updates"| FlowPolicy
 ```
-
+![alt text](image-2.png)
 A few notes on reading this diagram:
 
 * The response arrows summarise the return path through APIM, not a direct connection from Foundry to the app.
