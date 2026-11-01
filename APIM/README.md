@@ -1,5 +1,5 @@
 ---
-title: Azure API Management Lab
+title: Azure API Management
 description: Notes for creating and naming an Azure API Management instance
 ---
 
