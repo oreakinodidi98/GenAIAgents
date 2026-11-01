@@ -1,23 +1,25 @@
 ---
-title: Azure API Management
-description: Notes for creating and naming an Azure API Management instance
+title: Azure API Management Lab
+description: Notes for an Azure API Management instance
 ---
 
 ## APIM
 
- APIM is not just the front door to APIs — it can be the security, governance, observability and traffic-management layer for an enterprise API platform.
+APIM is not just the front door to APIs — it can be the security, governance, observability and traffic-management layer for an enterprise API platform. You would tpically use APIM to make it easier to manage your backend API, E.G. Load balancing, Authentication (APIM subscribtion key on application -> APIM with Managed identity and RBAC -> Backend API), Cache (caching User request and responce), tracing for metrics and logs, mock API (before implementing real API), Logs/Metrics in Azzure monitor. All of these features can be defined through a policy applied in APIM for each API. These work well for a backend API that is a rest API but can also be used for LLM model like OpenAI, Minstral etc. Can still apply the following for these models. Allowing you to take advantage of priority retry , circuit breaker patterns in the load balancer or LLM token limits and LLM metrics policy to help overcome constraints for LLM models around token limits for models and regions.
 
-Acting as  the governed boundary with policy‑as‑code keeps agent tools secure and scalable.
+Essentially APIM Acts as the governed boundary with policy‑as‑code that keeps agent tools secure and scalable. 
 
- Security — Entra ID, OAuth 2.0, JWT validation & policies
- Traffic Management — Rate limiting, throttling & routing
- Hybrid Connectivity — Secure access to Azure and on-prem APIs
- Observability — Azure Monitor, Application Insights & centralized logging
- Governance — API versioning, lifecycle management & access control
- Resiliency — HA, DR and multi-region considerations
- Automation — Terraform/Bicep and CI/CD for consistent deployments
+Security — Entra ID, OAuth 2.0, JWT validation & policies
+Traffic Management — Rate limiting, throttling & routing
+Hybrid Connectivity — Secure access to Azure and on-prem APIs
+Observability — Azure Monitor, Application Insights & centralized logging
+Governance — API versioning, lifecycle management & access control
+Resiliency — HA, DR and multi-region considerations
+Automation — Terraform/Bicep and CI/CD for consistent deployments
+Semantic caching - Connecting to redis cache that saves user prompt and responce from LLM model. Using embeding model , transfering user prompt to a vector and searching for the nearest vestor stored in redis cache
+Streaming - Chunks of the responce
 
- Why it matters 🔥
+Why it matters:
 ✅ Stronger governance: keep APIs consistent, controlled, and enterprise-ready
 ✅ Better security posture: centralized policies, authentication, and traffic control 🛡️
 ✅ Faster delivery: streamline how teams publish and manage APIs across workloads
@@ -25,9 +27,7 @@ Acting as  the governed boundary with policy‑as‑code keeps agent tools secur
 
 ## Create an Azure API Management instance
 
-Before I deploy any Azure resources, I first define a consistent naming
-convention. For this lab, I use the application name, environment, region,
-instance number, and owner to build each resource name.
+Before deploying any Azure resources, its important to first define a consistent naming convention. For this blog, I use the application name, environment, region, instance number, and owner to build each resource name.
 
 | Component        | Value | Meaning              |
 |------------------|-------|----------------------|
@@ -42,44 +42,33 @@ I use the following naming patterns:
 * Resource group: `rg-<environment>-<region>-<application-name>-<owner>-<instance>`
 * API Management: `apim-<environment>-<region>-<application-name>-<owner>-<instance>`
 
-The API Management service name must be globally unique. Including the owner
-value helps me create a unique name and identify who owns the resource.
+The API Management service name must be globally unique. Including the owner value helps you create a unique name and identify who owns the resource.
 
-I also make a note of the API Management service name because I will use it to
-build URLs later in the lab.
+You should also make a note of the API Management service name because you will use it to build URLs later in the lab.
 
-For this exercise, I select the **Developer** tier because it provides the
-features I need at the lowest cost.
+For this exercise, we will select the **Developer** tier because it provides the features needed at the lowest cost.
 
-![APIM Service Creation](image.png)
+![APIM Service Creation](..\APIM\Cost\images\image.png)
 
 ## Verify the Azure API Management instance
 
-The deployment can take some time because Azure creates several supporting
-resources in the background. Once the deployment is complete, I verify that my
-API Management instance is working:
+The deployment can take some time because Azure creates several supporting resources in the background. Once the deployment is complete verify that your API Management instance is working:
 
-1. In the Azure portal, I open my new API Management instance.
-2. I select **APIs**, and then select **Echo API**.
-3. On the **Test** tab, I select the **GET Retrieve resource** operation.
-4. I select **Send** to issue a test request.
-5. I confirm that the response has a `200 Success` status.
+1. In the Azure portal, open the new API Management instance.
+2. Select **APIs**, and then select **Echo API**.
+3. On the **Test** tab, select the **GET Retrieve resource** operation.
+4. Select **Send** to issue a test request.
+5. Confirm that the response has a `200 Success` status.
 
 > [!IMPORTANT]
-> When I open the request URL in a browser or call it with cURL, I initially
-> receive a `401 Unauthorized` response. The Echo API requires a subscription
-> key by default. Tests sent from the API Management test console include this
-> key automatically, but external requests do not.
+> When you open the request URL in a browser or call it with CURL, you initially receive a `401 Unauthorized` response. The Echo API requires a subscription key by default. Tests sent from the API Management test console include this key automatically, but external requests do not.
 
-For this lab, I temporarily disabled this requirement so I could test the API from
-outside the Azure portal. In **Echo API**, I open the **Settings** tab, clear
-**Subscription required**, and select **Save**.
+For this lab, temporarily disabled this requirement so you can test the API from
+outside the Azure portal. In **Echo API**, open the **Settings** tab, clear **Subscription required**, and select **Save**.
 
-Subscriptions are valuable for controlling and monitoring API access. I disable
-this setting only to confirm that the API Management instance works as expected
-in this lab.
+Subscriptions are valuable for controlling and monitoring API access. Disable this setting only to confirm that the API Management instance works as expected in this lab.
 
-I can now open the request URL in my browser or run the following verbose cURL
+You can now open the request URL in my browser or run the following verbose CURL
 command. The request should return a `200 Success` response:
 
 ```bash
