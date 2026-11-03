@@ -82,8 +82,8 @@ async def main() -> None:
                         file=sys.stderr,
                         flush=True,
                 )
-                    # The SDK timeout stops waiting but does not stop agent work.
-                await session.abort()
+            # The SDK timeout stops waiting but does not stop agent work.
+            await session.abort()
         print("\n")
 
 if __name__ == "__main__":

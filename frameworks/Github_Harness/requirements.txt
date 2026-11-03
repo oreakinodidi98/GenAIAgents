@@ -6,3 +6,4 @@ langchain_azure_cosmosdb
 langchain-azure-dynamic-sessions
 
 markdownify
+github-copilot-sdk[telemetry]
