@@ -6,105 +6,222 @@ description: Hands-on notes on LangChain agents, tools, MCP, code execution, and
 
 ## Introduction
 
-Before building anything, let's separate three things that are easy to mix up:
+Before we start building, let's separate three things that are easy to mix up: the agent, the framework, and the model provider. They work together, but each has a different role.
 
-- An agent is a piece of software that takes in information, decides what to do next, and takes action towards a goal. In an LLM-based agent, the model helps decide which tools to use and how to respond.
-- A **framework** is what we use to build and connect the different parts of the agent. Here, we are using LangChain.
-- A **model provider** is the service that hosts the model and makes it available to our application.
+- An **agent** is software that takes in information, decides what to do next, and takes action towards a goal. In an LLM-based agent, the model helps decide when to use a tool and how to respond.
+- A **framework** helps us build and connect the parts of the agent. In these examples, we use LangChain.
+- A **model provider** hosts the model and gives our application a way to use it. Microsoft Foundry is one example.
 
-The way I think about it: the provider gives us access to the model, the framework helps us build around it, and the agent uses that setup to get something done.
+The way I think about it is: the provider gives us access to the model, LangChain helps us connect the pieces, and the agent uses those pieces to get a task done.
 
 ## Module 1: LangChain fundamentals
 
-The first goal is to get a model connected and build a basic agent. We can add tools, external services, and memory once that foundation is working.
+Let's start by connecting to a model and creating a basic agent. We won't add tools yet, so we can first make sure the model connection is working.
 
 ### 1. Set up the Python environment
 
-Open PowerShell in this module's folder and create a virtual environment. This keeps the project's packages separate from other Python projects on your machine.
+A virtual environment keeps the packages for this project separate from your other Python projects. From the repository root, open PowerShell and run:
 
 ```powershell
+Set-Location .\Frameworks\Langchain\Fundamentals
 python -m venv agent_env
 .\agent_env\Scripts\Activate.ps1
 ```
 
-Once the environment is active, install the packages:
+If PowerShell blocks activation, skip that step and use `.\agent_env\Scripts\python.exe` in place of `python` for the commands that follow.
+
+Install the project's packages:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Activate the environment again whenever you open a new terminal to work on the project.
+When you open a new terminal later, return to this folder and activate the environment again.
 
 ### 2. Set up the infrastructure and model deployment
 
-We use Infrastructure as Code (IaC), with Terraform, to create the Azure resources and deploy the model.
+To call a model, we need a Microsoft Foundry resource and a model deployment. If you already have access to both, you can use them and skip the Terraform steps.
 
-The setup flow is:
-
-1. Review the Terraform configuration and set the required variables.
-2. Deploy the resources and model using the Terraform setup for the demo.
-3. Get the service endpoint and model deployment name.
-4. Configure authentication using Microsoft Entra ID or an API key, depending on the example.
-5. Add the required configuration to your local `.env` file.
-
-The endpoint tells the application where to send requests. The deployment name tells it which deployed model to use. Authentication determines whether the application is allowed to call that service.
+If you need to create the resources, we can use the [Terraform configuration](../IAC/). Terraform is an Infrastructure as Code (IaC) tool: we describe the resources in configuration files, review the proposed changes, and then choose whether to create them.
 
 > [!IMPORTANT]
-> Keep API keys and other secrets out of source control and logs. If the example uses `DefaultAzureCredential`, make sure your signed-in identity has the required access to the Azure resource.
+> The Terraform configuration also includes resources for later modules. Review the names, region, model availability, quotas, and costs before deploying. You will need Terraform, the Azure CLI, and access to an Azure subscription.
+
+1. Sign in to Azure and select the subscription you want to use:
+
+   ```powershell
+   az login
+   az account set --subscription "<subscription-id>"
+   ```
+
+2. Review the [Terraform variables](../IAC/variables.tf) and set values for your environment. From the `Fundamentals` folder, initialise Terraform and preview the changes:
+
+   ```powershell
+   Set-Location ..\IAC
+   terraform init
+   terraform validate
+   terraform plan
+   ```
+
+3. If the plan is what you want, run `terraform apply`. Terraform generates a new plan for the apply, so review it before confirming.
+
+4. After a successful deployment, get the Foundry resource endpoint and model deployment name. For example, from the `IAC` folder, get the endpoint and the GPT deployment name, then return to the `Fundamentals` folder:
+
+   ```powershell
+   terraform output -raw foundry_endpoint
+   terraform output -raw llm_model_deployment_name_chatgpt
+   Set-Location ..\Fundamentals
+   ```
+
+If you are using an existing deployment, get these values from the Azure portal instead. For the later tool examples, choose a deployed model that supports tool calling.
+
+#### Configure the application
+
+The endpoint tells the application where to send requests, while the deployment name tells it which model deployment to use. The scripts in these modules load those values from a local `.env` file.
+
+From the `Fundamentals` folder, create the file from the example if it does not already exist:
+
+```powershell
+if (-not (Test-Path .\.env)) {
+    Copy-Item .\.env.example .\.env
+}
+```
+
+In `.env`, fill in these two values, replacing the placeholders:
+
+```text
+FOUNDRY_ENDPOINT=<your-foundry-resource-endpoint>
+LLM_MODEL_DEPLOYMENT_NAME=<your-model-deployment-name>
+```
+
+Use the resource endpoint without a trailing slash, not the project endpoint. The script adds `/openai/v1` to the resource endpoint, so don't include that path in the value yourself. The deployment name is the name of your deployed model, which may be different from the model's original name.
+
+The examples use `DefaultAzureCredential` to authenticate with Microsoft Entra ID. If you are using Azure CLI credentials, run `az login` and make sure the identity selected by `DefaultAzureCredential` has permission to call the model deployment. Adding an API key to `.env` alone does not change the authentication used by these scripts.
+
+> [!IMPORTANT]
+> Keep API keys and other secrets out of source control and logs. The `.env` file is for your local configuration, not for sharing credentials.
 
 ### 3. Configure the client and build a ReAct agent
 
-Configure the model client with the endpoint, deployment name, and authentication. Test a basic model response first, then connect the model to an agent.
+In [module1.py](./module1.py), we configure the model client using the endpoint, deployment name, and authentication. We then test a response from the model directly before creating an agent around it.
 
-ReAct stands for **Reason + Act**. The idea is that the agent can decide on an action, use a tool, look at the result, and decide what to do next.
+ReAct stands for **Reason + Act**. The idea is that an agent can decide what to do, request an action, look at the result, and use that result to decide what comes next.
 
-The conceptual flow is:
+Here is the flow when tools are available:
 
 ```text
-User request -> Decide the next step -> Call a tool -> Observe the result -> Respond or repeat
+User request
+     |
+     v
+Agent decides what to do
+     |
+     +--> Answer directly
+     |
+     +--> Request a tool
+              |
+              v
+        Application runs the tool
+              |
+              v
+        Result returned to the agent
+              |
+              +--> Answer or request another tool
 ```
 
-For example, if you ask about the weather, the agent can call a weather tool and use the result to answer. If no tool is needed, it can respond directly. This describes the agent's decision-and-action loop, not a requirement to display its internal reasoning.
+For example, if you ask about the weather, an agent with a weather tool can request it and use the result in its answer. The agent can also answer without a tool when one isn't needed. The diagram describes the decision-and-action loop; it doesn't mean the agent has to show its internal reasoning.
+
+Run the first example from the `Fundamentals` folder:
+
+```powershell
+python .\module1.py
+```
+
+You should see a streamed response from the model, followed by a response from the agent. This first agent has no tools yet. If the connection fails, check the resource endpoint, deployment name, sign-in, and model access before moving on.
+
+For more on the agent loop, see the [LangChain agent documentation](https://docs.langchain.com/oss/python/langchain/agents).
 
 ## Module 2: Tools and function calling
 
-A model can generate text, but it does not automatically have access to your APIs, files, or business systems. Tools give the agent specific actions it is allowed to request.
+A model can generate a response, but it doesn't automatically have access to our APIs, files, or business systems. Tools give the agent specific actions it can request, such as multiplying numbers, searching documentation, or calling a weather service.
 
-For example, a tool could get the weather, multiply two numbers, or retrieve information from an API.
+The model decides whether to request a tool based on the question and the tools we make available. We still decide which tools the agent can use and what those tools are allowed to do.
 
 ### How we set up a tool
 
-1. Define the function that performs the action.
-2. Give it a clear name, description, and typed arguments so the model knows when and how to use it.
-3. Register the tool with the agent, or bind it to the model when handling tool calls directly.
-4. Configure any restrictions on tool use and execution.
+1. Write a function that performs the action.
+2. Give it a clear name, description, and typed arguments so the model can understand when and how to use it.
+3. Register the tool with the agent. If you are handling tool calls directly, you can bind it to the model instead.
+4. Set any permissions and restrictions needed before the function runs.
 
-The model normally chooses whether to request a tool call based on the user's question and the available tools. We still control which tools are exposed, what they can do, and whether a requested action is allowed to run.
+In LangChain, the `@tool` decorator can turn a Python function into a tool. For example:
+
+```python
+from langchain_core.tools import tool
+
+@tool
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers together."""
+    return a * b
+```
+
+The function name and description tell the model what the tool does. The type hints describe the inputs it expects. Clear descriptions matter because the model uses this information when deciding whether to request the tool.
 
 ### What happens during a tool call
 
 1. The user asks a question.
-2. The model decides that a tool is needed.
-3. The model returns a tool call with the tool's name and arguments.
-4. The application or agent framework validates the request and runs the function.
-5. The tool result is sent back to the model.
-6. The model uses that result to answer, or requests another tool call if more work is needed.
+2. The model decides whether it needs a tool.
+3. If it does, the model returns a tool call containing the tool name and arguments.
+4. The application or agent framework runs the requested function.
+5. The tool result goes back to the model.
+6. The model uses the result to answer or requests another tool if more work is needed.
 
-So this is a round trip. The model requests the action, but the application executes it. That distinction matters because permissions, input validation, and error handling belong in the application, not only in the prompt.
+So this is a round trip: the model requests the action, but the application executes it. That distinction matters because we still need to enforce permissions, validate inputs, and handle errors in the application, not only in the prompt.
+
+In [module2.py](./module2.py), we register a `multiply` tool and a `get_weather` tool, then ask the agent to use them. The weather tool generates random demo data; it does not connect to a real weather service. Run it from the `Fundamentals` folder:
+
+```powershell
+python .\module2.py
+```
 
 ## Module 3: Model Context Protocol
 
-Model Context Protocol (MCP) is an open standard for connecting AI applications to external tools and information.
+Model Context Protocol (MCP) is an open standard for connecting AI applications to external tools and information. Instead of building a separate integration for every agent, we can expose capabilities through an MCP server and connect to them using an MCP client.
 
-Instead of building a separate integration for every agent, we can expose capabilities through an MCP server and connect to it using an MCP client.
+I think of MCP a bit like USB for agent integrations: it gives applications and servers a common way to connect. The server still determines which capabilities it provides and who can use them.
 
 An MCP server can expose:
 
-- Tools that perform actions
+- Tools that perform actions, such as searching documentation
 - Resources that provide data or context
 - Prompts that provide reusable interaction templates
 
+The pieces fit together like this:
+
+```text
+User request
+     |
+     v
+LangChain agent
+     |
+     v
+MCP client <----> MCP server
+                       |
+                       +-- Tools
+                       +-- Resources
+                       +-- Prompts
+```
+
 ### How the agent uses an MCP server
+
+In [module3.py](./module3.py), `MultiServerMCPClient` connects to the Microsoft Learn MCP server, gets its tools, and makes those tools available to the LangChain agent. This example loads tools; resources and prompts are not automatically passed to the agent.
+
+After completing the model setup in Module 1, run the example from the `Fundamentals` folder:
+
+```powershell
+python .\module3.py
+```
+
+The script asks about Azure Container Apps, and the agent can use the discovered tools to look up information from Microsoft Learn. Here's how the tool flow works:
 
 1. The application's MCP client connects to the server.
 2. It discovers the tools that the server exposes.
