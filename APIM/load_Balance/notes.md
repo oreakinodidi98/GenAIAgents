@@ -29,6 +29,11 @@ supports weiht and priority of each instance
 
 ## testing 
 
+Create APIM and 3 instances of Foundry
+deploy model on each foundry
+connect in apim
+set up backend 
+
 create a venv and run it 
 ```powershell
 python -m venv agent_env
