@@ -14,7 +14,7 @@
         <set-backend-service id="apim-generated-policy" backend-id="Backendpool" />
     </inbound>
     <backend>
-        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 &amp;&amp; !context.Response.StatusReason.Contains(&quot;Backend pool&quot;) &amp;&amp; !context.Response.StatusReason.Contains(&quot;is temporarily unavailable&quot;)))">
             <forward-request buffer-request-body="true" />
         </retry>
     </backend>
@@ -25,7 +25,7 @@
         <base />
         <choose>
             <!--Return a generic error that does not reveal backend pool details.-->
-            <when condition="@(context.Response.StatusCode == 503)">
+            <when condition="@(context.Response != null &amp;&amp; context.Response.StatusCode == 503)">
                 <return-response>
                     <set-status code="503" reason="Service Unavailable" />
                 </return-response>

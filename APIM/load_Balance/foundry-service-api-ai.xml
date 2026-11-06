@@ -10,7 +10,7 @@
         <set-backend-service id="apim-generated-policy" backend-id="Backendpool" />
     </inbound>
     <backend>
-        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 &amp;&amp; !context.Response.StatusReason.Contains(&quot;Backend pool&quot;) &amp;&amp; !context.Response.StatusReason.Contains(&quot;is temporarily unavailable&quot;)))">
             <forward-request buffer-request-body="true" />
         </retry>
     </backend>
@@ -18,7 +18,7 @@
         <base />
         <choose>
             <when condition="@(context.Response.StatusCode >= 400)">
-                <set-variable name="backendBody" value="@(context.Response.Body.As<string>(preserveContent: true))" />
+                <set-variable name="backendBody" value="@(context.Response.Body.As&lt;string&gt;(preserveContent: true))" />
                 <trace source="foundry-backend" severity="error">
                     <message>@($"Foundry returned {context.Response.StatusCode} {context.Response.StatusReason}: {(string)context.Variables["backendBody"]}")</message>
                     <metadata name="gateway-request-id" value="@(context.RequestId.ToString())" />
@@ -26,9 +26,6 @@
                 <set-header name="Content-Type" exists-action="override">
                     <value>application/json</value>
                 </set-header>
-                <!-- <return-response>
-                    <set-status code="503" reason="Service Unavailable" />
-                </return-response> -->
                 <set-body>@{
                     var raw = (string)context.Variables["backendBody"];
                     JToken detail;
@@ -54,14 +51,15 @@
             <metadata name="gateway-request-id" value="@(context.RequestId.ToString())" />
         </trace>
         <return-response>
-            <set-status code="@{
+            <set-status code='@{
                 var src = context.LastError.Source ?? "";
                 var reason = context.LastError.Reason ?? "";
+                if (reason == "SubscriptionKeyNotFound" || reason == "SubscriptionKeyInvalid") { return 401; }
                 if (src.StartsWith("validate")) { return 401; }
                 if (reason.Contains("Timeout")) { return 504; }
                 if (src == "forward-request") { return 502; }
                 return 500;
-            }" />
+            }' />
             <set-header name="Content-Type" exists-action="override">
                 <value>application/json</value>
             </set-header>
