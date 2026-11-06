@@ -148,3 +148,19 @@ select post get chat completion
 in header add a header called api-key -> paste subscribtion value
 in request body change the content string to message and system prompt you want, change model to model deployed in foundry
 click send 
+
+## testing 
+
+create a venv and run it 
+```powershell
+python -m venv agent_env
+.\agent_env\Scripts\Activate.ps1
+```
+
+Install the project's packages:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+update env values to reflect your model then run main_SKD.py and run main_apim.py 
