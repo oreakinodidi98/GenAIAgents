@@ -29,24 +29,38 @@ def main():
     print("openai_model_name:", model_name)
     print("api_version:", api_version)
     
-    messages={"messages":[
+    messages=[
         {"role": "system", "content": "You are a sarcastic unhelpful assistant."},
-        {"role": "user", "content": "Can you tell me the time, please?"}
-    ]}
+        {"role": "user", "content": "Can you tell me the time, please?"},
+    ]
 
-    # can connect to llm using APIM
-    client = AzureOpenAI(
-        azure_endpoint=gateway_url,
+    # # can connect to llm using APIM
+    # client = AzureOpenAI(
+    #     azure_endpoint=gateway_url,
+    #     api_key=subscription_key,
+    #     api_version=api_version
+    # )
+    # response = client.chat.completions.create(
+    #         model=model_name, 
+    #         messages=messages
+    # )
+
+    client = OpenAI(
+        base_url=f"{gateway_url}/foundry/models/",
         api_key=subscription_key,
-        api_version=api_version
+        default_headers={"api-key": subscription_key},
     )
 
     # invoke service for chat complertion 
     response = client.chat.completions.create(
-        model=model_name, 
-        messages=messages)
-
+        model=deployment_name,
+        messages=messages,
+        extra_query={"api-version": api_version},
+    )
+    
     print("💬 ", response.choices[0].message.content) 
 
 if __name__ == "__main__":
     main()
+
+
