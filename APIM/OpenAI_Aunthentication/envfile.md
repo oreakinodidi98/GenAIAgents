@@ -1,0 +1,4 @@
+apim_resource_gateway_url=<your_apim_resource_gateway_url>
+openai_api_version=<your_openai_api_version>
+openai_deployment_name=<your_openai_deployment_name>
+apim_subscription_key=<your_apim_subscription_key>
