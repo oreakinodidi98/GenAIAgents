@@ -27,6 +27,27 @@ doesn need policy configuration
 rules are properties of backend
 supports weiht and priority of each instance 
 
+## Policy error handling
+
+The three API policies route to `Backendpool`. Backend membership, weights,
+priorities, and circuit breakers are configured on the backend resources, not
+in these policies.
+
+`foundry-service-api-ai.xml` preserves backend HTTP error statuses and wraps the
+backend error body in diagnostic JSON. Missing or invalid APIM subscription keys
+are mapped to HTTP 401 when handled by its `on-error` section.
+
+The France and UK policies check that a response exists before inspecting its
+status in `on-error`. Their token limits, metrics, and retry settings remain
+specific to each API entry point; selecting a pool member does not execute
+another API's policies.
+
+After applying the policies in APIM, test a successful request, missing and
+invalid subscription keys, an invalid model, backend throttling, and backend
+unavailability. Use request traces to confirm the selected pool member. Backend
+400 and 429 responses should retain their status through the diagnostic policy;
+missing and invalid subscription keys should return 401.
+
 ## testing 
 
 Create APIM and 3 instances of Foundry

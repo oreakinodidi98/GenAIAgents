@@ -1,3 +1,8 @@
+requests
+azure-identity
+openai
+python-dotenv
+
 langchain 
 langgraph 
 langchain-openai 
