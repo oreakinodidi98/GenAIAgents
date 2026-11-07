@@ -1,16 +1,3 @@
 {
-	"servers": {
-		"vbd-mcp-local": {
-			"type": "http",
-			"url": "http://localhost:7071/runtime/webhooks/mcp"
-		},
-		"remote-mcp-server-4bf20eee": {
-			"url": "https://mcptoolsdemo-bwbnghg0e8f5epad.swedencentral-01.azurewebsites.net/runtime/webhooks/mcp",
-			"type": "http",
-        "headers": {
-        "x-functions-key": "GYN63tc4p65HE_LyL9xOhg8habUPGx1rHMIfFGmR8IKUAzFuWVKwzA=="
-      }
-		}
-	},
-	"inputs": []
+	
 }
