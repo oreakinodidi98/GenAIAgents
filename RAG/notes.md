@@ -161,3 +161,34 @@ The goal is not just to make the model sound more confident. It is to give it re
 create foundry
 create deployment -> LLM model and Embeding Model
 create azure AI search 
+use script to create chunks of documents
+save document into ai search 
+create embeding
+save vector into Azure ai search
+so when user asks a question that might be in the documents 
+
+to run script create a virtual enviroment
+
+create a venv and run it 
+```powershell
+python -m venv agent_env
+.\agent_env\Scripts\Activate.ps1
+```
+
+Install the project's packages:
+
+```powershell
+python -m pip install -r requirements.txt
+pip install python-dotenv
+pip install tiktoken
+pip install azure-search-documents
+pip install azure-identity
+pip install openai
+```
+
+rember to assighn appropriate role:
+
+az role assignment create `
+  --assignee "admin@MngEnvMCAP443517.onmicrosoft.com" `
+  --role "Cognitive Services OpenAI User" `
+  --scope "/subscriptions/f76acfa2-f79b-465f-a4ef-4cd279b35d4d/resourceGroups/AzureApiLab/providers/Microsoft.CognitiveServices/accounts/foundry-dev-uks-oa-hol-01"
