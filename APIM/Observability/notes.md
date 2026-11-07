@@ -147,6 +147,8 @@ The [checked-in policy](policy/policy.xml) uses:
 
 Keep the existing authentication and routing policies when adding this block. Although it is declared in `inbound`, the token policy uses the model response's usage information when available.
 
+The dimensions on the token metric policy are there to label usage with identifies helping group and analyse token consumption. E.G. A called supplied user ID is a reporting label, not proof of identity
+
 Here is what the configured dimensions mean:
 
 | Dimension | What it represents | What to keep in mind |

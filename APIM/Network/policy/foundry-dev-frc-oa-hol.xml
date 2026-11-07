@@ -1,0 +1,47 @@
+<policies>
+    <inbound>
+        <base />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+        </set-header>
+        <llm-emit-token-metric>
+            <dimension name="API ID" />
+            <dimension name="Subscription ID" />
+            <dimension name="Client IP address" value="@(context.Request.IpAddress)" />
+        </llm-emit-token-metric>
+        <azure-openai-emit-token-metric namespace="openai">
+            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+            <dimension name="API ID" value="@(context.Api.Id)" />
+            <dimension name="User ID" value="@(context.Request.Headers.GetValueOrDefault("x-user-id", "N/A"))" />
+        </azure-openai-emit-token-metric>
+        <azure-openai-token-limit
+            counter-key="@(context.Request.IpAddress)"
+            tokens-per-minute="500"
+            estimate-prompt-tokens="false"
+            remaining-tokens-variable-name="remainingTokens">
+        </azure-openai-token-limit>
+        <!-- <set-backend-service id="apim-generated-policy" backend-id="foundry-dev-frc-oa-hol-01-ai-endpoint" /> -->
+        <set-backend-service id="apim-generated-policy" backend-id="foundry-dev-frc-oa-hol-01-ai-endpoint" />
+    </inbound>
+    <backend>
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 &amp;&amp; !context.Response.StatusReason.Contains(&quot;Backend pool&quot;) &amp;&amp; !context.Response.StatusReason.Contains(&quot;is temporarily unavailable&quot;)))">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+        <choose>
+            <!--Return a generic error that does not reveal backend pool details.-->
+            <when condition="@(context.Response != null &amp;&amp; context.Response.StatusCode == 503)">
+                <return-response>
+                    <set-status code="503" reason="Service Unavailable" />
+                </return-response>
+            </when>
+        </choose>
+    </on-error>
+</policies>
