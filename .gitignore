@@ -338,3 +338,12 @@ terraform.rc
 !.env.sample
 !*.env.example
 !*.env.sample
+!.envrc.example
+!**/.envrc.example
+
+# Local direnv files and private key material
+.envrc
+**/.envrc
+*.key
+*.p12
+*.pfx

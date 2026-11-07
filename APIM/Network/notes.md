@@ -191,6 +191,7 @@ The result is a model backend that APIM can reach privately, while applications 
 
 ## Demo
 
+![alt text](./image/architecture.png)
 Deploy RG
 deploy foundry in 3 different regions
 deploy model
