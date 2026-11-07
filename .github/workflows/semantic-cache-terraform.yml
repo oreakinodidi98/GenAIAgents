@@ -1,0 +1,64 @@
+name: Semantic Cache Terraform Validation
+
+on:
+  pull_request:
+    paths:
+      - "APIM/SemanticCaching/IAC/**"
+      - "APIM/SemanticCaching/policy/**"
+      - ".github/workflows/semantic-cache-terraform.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "APIM/SemanticCaching/IAC/**"
+      - "APIM/SemanticCaching/policy/**"
+      - ".github/workflows/semantic-cache-terraform.yml"
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        directory:
+          - 'APIM\SemanticCaching\IAC'
+          - 'APIM\SemanticCaching\IAC\modules\Redis'
+          - 'APIM\SemanticCaching\IAC\modules\ACA'
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.17.1"
+          terraform_wrapper: false
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+      - name: Initialize without remote state
+        run: terraform init -backend=false -input=false
+      - name: Validate configuration
+        run: terraform validate
+      - name: Test with mocked providers
+        run: terraform test
+
+  redis-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Test Redis authentication and vector search
+        shell: pwsh
+        run: ./APIM/SemanticCaching/IAC/modules/ACA/tests/redis-smoke.ps1 -Image redis:8.2.3

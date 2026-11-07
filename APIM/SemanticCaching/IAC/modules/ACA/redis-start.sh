@@ -1,0 +1,1 @@
+exec redis-server --loadmodule /usr/local/lib/redis/modules/rejson.so --loadmodule /usr/local/lib/redis/modules/redisearch.so --requirepass "$REDIS_PASSWORD" --maxmemory 768mb --maxmemory-policy noeviction --save "" --appendonly no
