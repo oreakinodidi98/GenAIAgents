@@ -1,0 +1,60 @@
+name: Observability Terraform Validation
+
+on:
+  pull_request:
+    paths:
+      - "APIM/Observability/IAC/**"
+      - "APIM/Observability/policy/**"
+      - ".github/workflows/observability-terraform.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "APIM/Observability/IAC/**"
+      - "APIM/Observability/policy/**"
+      - ".github/workflows/observability-terraform.yml"
+  schedule:
+    - cron: "45 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        directory:
+          - 'APIM\Observability\IAC'
+          - 'APIM\Observability\IAC\modules\App_insight'
+          - 'APIM\Observability\IAC\modules\Grafana'
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.17.1"
+          terraform_wrapper: false
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+      - name: Initialize without remote state
+        run: terraform init -backend=false -input=false
+      - name: Validate configuration
+        run: terraform validate
+      - name: Test with mocked providers
+        run: terraform test
+      - name: Check policy XML
+        if: matrix.directory == 'APIM\Observability\IAC'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [xml](Get-Content -LiteralPath '..\policy\policy.xml' -Raw) | Out-Null
