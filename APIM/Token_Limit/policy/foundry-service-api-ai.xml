@@ -1,0 +1,88 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- APIM -> Foundry auth using system-assigned managed identity -->
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
+        <set-header name="Authorization" exists-action="override">
+            <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+        </set-header>
+        <azure-openai-token-limit
+            counter-key="@(context.Request.IpAddress)"
+            tokens-per-minute="500"
+            estimate-prompt-tokens="false"
+            remaining-tokens-variable-name="remainingTokens">
+        </azure-openai-token-limit>
+        <!-- <set-backend-service id="apim-generated-policy" backend-id="foundry-service-api-ai-endpoint" /> -->
+        <set-backend-service id="apim-generated-policy" backend-id="foundry-service-api-ai-endpoint" />
+    </inbound>
+    <backend>
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 &amp;&amp; !context.Response.StatusReason.Contains(&quot;Backend pool&quot;) &amp;&amp; !context.Response.StatusReason.Contains(&quot;is temporarily unavailable&quot;)))">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode >= 400)">
+                <set-variable name="backendBody" value="@(context.Response.Body.As&lt;string&gt;(preserveContent: true))" />
+                <trace source="foundry-backend" severity="error">
+                    <message>@($"Foundry returned {context.Response.StatusCode} {context.Response.StatusReason}: {(string)context.Variables["backendBody"]}")</message>
+                    <metadata name="gateway-request-id" value="@(context.RequestId.ToString())" />
+                </trace>
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json</value>
+                </set-header>
+                <set-body>@{
+                    var raw = (string)context.Variables["backendBody"];
+                    JToken detail;
+                    try { detail = JToken.Parse(raw); } catch { detail = raw; }
+                    var headers = context.Response.Headers;
+                    return new JObject(
+                        new JProperty("source", "foundry-backend"),
+                        new JProperty("statusCode", context.Response.StatusCode),
+                        new JProperty("reason", context.Response.StatusReason),
+                        new JProperty("backendRequestId", headers.GetValueOrDefault("apim-request-id", headers.GetValueOrDefault("x-request-id", ""))),
+                        new JProperty("wwwAuthenticate", headers.GetValueOrDefault("WWW-Authenticate", "")),
+                        new JProperty("gatewayRequestId", context.RequestId.ToString()),
+                        new JProperty("backendError", detail)
+                    ).ToString();
+                }</set-body>
+            </when>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+        <trace source="apim-gateway" severity="error">
+            <message>@($"{context.LastError.Source} | {context.LastError.Reason} | {context.LastError.Message}")</message>
+            <metadata name="gateway-request-id" value="@(context.RequestId.ToString())" />
+        </trace>
+        <return-response>
+            <set-status code='@{
+                var src = context.LastError.Source ?? "";
+                var reason = context.LastError.Reason ?? "";
+                if (reason == "SubscriptionKeyNotFound" || reason == "SubscriptionKeyInvalid") { return 401; }
+                if (src.StartsWith("validate")) { return 401; }
+                if (reason.Contains("Timeout")) { return 504; }
+                if (src == "forward-request") { return 502; }
+                return 500;
+            }' />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                var e = context.LastError;
+                return new JObject(
+                    new JProperty("source", e.Source ?? ""),
+                    new JProperty("reason", e.Reason ?? ""),
+                    new JProperty("message", e.Message ?? ""),
+                    new JProperty("section", e.Section ?? ""),
+                    new JProperty("scope", e.Scope ?? ""),
+                    new JProperty("path", e.Path ?? ""),
+                    new JProperty("policyId", e.PolicyId ?? ""),
+                    new JProperty("backendStatusCode", context.Response?.StatusCode),
+                    new JProperty("gatewayRequestId", context.RequestId.ToString())
+                ).ToString();
+            }</set-body>
+        </return-response>
+    </on-error>
+</policies>
