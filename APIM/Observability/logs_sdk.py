@@ -73,6 +73,23 @@ def main():
         print("💬 ", response.choices[0].message.content) 
         print("Response time:", response_time, "seconds")
         time.sleep(sleep_time_ms / 1000)  # Add a small delay between requests to avoid overwhelming the server
+
+        # change to sub key 2
+        client = OpenAI(
+            base_url=f"{gateway_url}/{backend_url}/models",
+            api_key=subscription_key,
+            default_headers={"api-key": subscription_key,
+                            "Ocp-Apim-Subscription-Key": subscription_key,
+            },
+        )
+        response = client.chat.completions.create(
+            model=deployment_name,
+            messages=messages,
+            extra_query={"api-version": api_version},
+        )
+        print("💬 ","for subscription 2: ", response.choices[0].message.content)
+        response_time = time.perf_counter() - start_time
+        print("Response time for subscription 2:", response_time, "seconds")
         
 
 if __name__ == "__main__":
