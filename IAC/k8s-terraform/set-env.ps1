@@ -1,11 +1,7 @@
 # set-env.ps1
 $env:ARM_SUBSCRIPTION_ID = "cb5b077c-3ef5-4b2e-83e5-490cc5ca0e19"
-$env:ARM_TENANT_ID = ""
-$env:ARM_CLIENT_ID = ""
-$env:ARM_CLIENT_SECRET = ""
-
-# VM Admin Password (must have: lowercase, uppercase, digit, special char)
-$env:TF_VAR_admin_password = "REDACTED_SECRET"
+$env:ARM_USE_CLI = "true"
+Remove-Item Env:ARM_TENANT_ID, Env:ARM_CLIENT_ID, Env:ARM_CLIENT_SECRET -ErrorAction SilentlyContinue
 
 # Remove ARM_ACCESS_KEY if set (conflicts with Azure AD auth)
 Remove-Item Env:ARM_ACCESS_KEY -ErrorAction SilentlyContinue
