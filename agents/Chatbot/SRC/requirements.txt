@@ -12,6 +12,6 @@ azure-core-tracing-opentelemetry
 azure-monitor-opentelemetry==1.6.9 # version such as 1.6.11 isn't compatible
 azure-search-documents
 opentelemetry-sdk
-setuptools==80.9.0
+setuptools==83.0.0
 starlette>=0.40.0 # fix vulnerability
 jinja2 # new dependent of fastapi
